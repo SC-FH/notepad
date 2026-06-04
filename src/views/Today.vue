@@ -31,9 +31,19 @@ const loadTasks = async (): Promise<void> => {
   const all = await db.tasks.toArray()
   tasks.value = all
     .filter(t => {
+      // 当天创建的任务全部显示
       const d = new Date(t.createdAt)
       d.setHours(0, 0, 0, 0)
-      return d.getTime() === today.getTime()
+      if (d.getTime() === today.getTime()) return true
+      // 往日未完成的任务顺延到今天
+      if (t.status === TASK_STATUS.PENDING || t.status === TASK_STATUS.IN_PROGRESS) return true
+      // 今天完成的往日任务也显示（避免刷新后消失）
+      if (t.status === TASK_STATUS.COMPLETED && t.completedAt) {
+        const c = new Date(t.completedAt)
+        c.setHours(0, 0, 0, 0)
+        return c.getTime() === today.getTime()
+      }
+      return false
     })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 }
