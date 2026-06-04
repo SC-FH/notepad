@@ -1,0 +1,203 @@
+@use 'variables' as *;
+
+// ═══════════════════════════════════════════════════════
+//  Responsive Breakpoints
+// ═══════════════════════════════════════════════════════
+
+@mixin dark {
+  @media (prefers-color-scheme: dark) { @content; }
+}
+
+@mixin mobile {
+  @media (max-width: #{$bp-mobile}) { @content; }
+}
+
+@mixin tablet {
+  @media (max-width: #{$bp-tablet}) { @content; }
+}
+
+@mixin desktop {
+  @media (min-width: #{$bp-desktop}) { @content; }
+}
+
+@mixin mobile-up {
+  @media (min-width: #{$bp-mobile + 1}) { @content; }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Layout Helpers
+// ═══════════════════════════════════════════════════════
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin grid-center {
+  display: grid;
+  place-items: center;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Glass / Frosted Effect
+// ═══════════════════════════════════════════════════════
+
+@mixin glass($blur: $blur-md) {
+  background: var(--glass-bg);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid var(--glass-border);
+}
+
+@mixin glass-strong($blur: $blur-lg) {
+  background: var(--glass-bg);
+  backdrop-filter: blur($blur) saturate(1.4);
+  -webkit-backdrop-filter: blur($blur) saturate(1.4);
+  border: 1px solid var(--glass-border);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Interactive Effects
+// ═══════════════════════════════════════════════════════
+
+@mixin hover-lift($distance: -2px, $shadow: var(--shadow-md)) {
+  transition:
+    transform var(--duration-normal) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out);
+  will-change: transform;
+
+  &:hover {
+    transform: translateY($distance);
+    box-shadow: $shadow;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@mixin hover-scale($scale: 1.02) {
+  transition: transform var(--duration-normal) var(--ease-out);
+  will-change: transform;
+
+  &:hover {
+    transform: scale($scale);
+  }
+
+  &:active {
+    transform: scale(1);
+  }
+}
+
+@mixin hover-glow($color: rgba(59, 130, 246, 0.12)) {
+  transition: box-shadow var(--duration-normal) var(--ease-out);
+
+  &:hover {
+    box-shadow: 0 0 0 4px $color;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Typography
+// ═══════════════════════════════════════════════════════
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Scrollbar
+// ═══════════════════════════════════════════════════════
+
+@mixin scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@mixin scrollbar-thin($width: 4px) {
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: $radius-full;
+
+    &:hover {
+      background: var(--gray-400);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Borders & Cards
+// ═══════════════════════════════════════════════════════
+
+@mixin card {
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@mixin card-interactive {
+  @include card;
+  @include hover-lift;
+  cursor: pointer;
+}
+
+@mixin divider-bottom {
+  border-bottom: 1px solid var(--paper-line);
+}
+
+@mixin divider-top {
+  border-top: 1px solid var(--paper-line);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Absolute / Positioning
+// ═══════════════════════════════════════════════════════
+
+@mixin absolute-fill {
+  position: absolute;
+  inset: 0;
+}
+
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
