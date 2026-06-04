@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import db, {
   TASK_STATUS,
@@ -7,17 +7,20 @@ import db, {
   STATUS_LABELS,
   PRIORITY_LABELS,
   CATEGORY_LABELS,
+  type Task,
+  type TaskStatus,
+  type TaskCategory,
 } from '../db'
 import TaskForm from '../components/TaskForm.vue'
 
-const tasks = ref([])
+const tasks = ref<Task[]>([])
 const showForm = ref(false)
-const editingTask = ref(null)
-const filterStatus = ref('all')
-const filterCategory = ref('all')
+const editingTask = ref<Task | null>(null)
+const filterStatus = ref<string>('all')
+const filterCategory = ref<string>('all')
 const searchQuery = ref('')
 
-const loadTasks = async () => {
+const loadTasks = async (): Promise<void> => {
   tasks.value = await db.tasks.toArray()
 }
 
@@ -42,71 +45,71 @@ const filteredTasks = computed(() => {
     // Incomplete tasks first, then by date
     if (a.status === TASK_STATUS.COMPLETED && b.status !== TASK_STATUS.COMPLETED) return 1
     if (a.status !== TASK_STATUS.COMPLETED && b.status === TASK_STATUS.COMPLETED) return -1
-    return new Date(b.createdAt) - new Date(a.createdAt)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 })
 
 const taskCount = computed(() => filteredTasks.value.length)
 
-const openAddForm = () => {
+const openAddForm = (): void => {
   editingTask.value = null
   showForm.value = true
 }
 
-const openEditForm = (task) => {
+const openEditForm = (task: Task): void => {
   editingTask.value = { ...task }
   showForm.value = true
 }
 
-const closeForm = () => {
+const closeForm = (): void => {
   showForm.value = false
   editingTask.value = null
 }
 
-const handleSave = async (taskData) => {
+const handleSave = async (taskData: Record<string, any>): Promise<void> => {
   if (editingTask.value) {
-    await db.tasks.update(editingTask.value.id, taskData)
+    await db.tasks.update(editingTask.value.id!, taskData)
   } else {
     await db.tasks.add({
       ...taskData,
       createdAt: new Date().toISOString(),
       completedAt: null,
-    })
+    } as Task)
   }
   await loadTasks()
   closeForm()
 }
 
-const toggleStatus = async (task) => {
+const toggleStatus = async (task: Task): Promise<void> => {
   const newStatus = task.status === TASK_STATUS.COMPLETED
     ? TASK_STATUS.PENDING
     : TASK_STATUS.COMPLETED
-  await db.tasks.update(task.id, {
+  await db.tasks.update(task.id!, {
     status: newStatus,
     completedAt: newStatus === TASK_STATUS.COMPLETED ? new Date().toISOString() : null,
   })
   await loadTasks()
 }
 
-const deleteTask = async (id) => {
+const deleteTask = async (id: number): Promise<void> => {
   await db.tasks.delete(id)
   await loadTasks()
 }
 
-const updateStatus = async (task, status) => {
-  await db.tasks.update(task.id, {
+const updateStatus = async (task: Task, status: TaskStatus): Promise<void> => {
+  await db.tasks.update(task.id!, {
     status,
     completedAt: status === TASK_STATUS.COMPLETED ? new Date().toISOString() : null,
   })
   await loadTasks()
 }
 
-const statusOptions = [
+const statusOptions: { value: string; label: string }[] = [
   { value: 'all', label: '全部状态' },
   ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
 ]
 
-const categoryOptions = [
+const categoryOptions: { value: string; label: string }[] = [
   { value: 'all', label: '全部分类' },
   ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label })),
 ]
@@ -182,13 +185,13 @@ onMounted(loadTasks)
           <select
             :value="task.status"
             class="status-select"
-            @change="updateStatus(task, $event.target.value)"
+            @change="updateStatus(task, ($event.target as HTMLSelectElement).value as TaskStatus)"
           >
             <option v-for="(label, value) in STATUS_LABELS" :key="value" :value="value">
               {{ label }}
             </option>
           </select>
-          <button class="btn btn-icon btn-danger-ghost" @click.stop="deleteTask(task.id)" title="删除">
+          <button class="btn btn-icon btn-danger-ghost" @click.stop="deleteTask(task.id!)" title="删除">
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
           </button>
         </div>

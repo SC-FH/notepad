@@ -1,5 +1,19 @@
 import { ref, computed, onMounted } from 'vue'
 
+// ── Type Definitions ──────────────────────────────────────
+
+interface ColorPalette {
+  [key: string]: string
+}
+
+export interface ColorScheme {
+  id: string
+  name: string
+  preview: string
+  light: ColorPalette
+  dark: ColorPalette
+}
+
 // ── Color Scheme Definitions ──────────────────────────────
 //
 // Each scheme provides full light + dark palettes.
@@ -15,7 +29,7 @@ import { ref, computed, onMounted } from 'vue'
 // cream vs cream-dark: clear hover feedback
 // gray-300+: true neutrals for borders, icons, functional UI
 
-export const schemes = [
+export const schemes: ColorScheme[] = [
   {
     id: 'teal', name: '翠墨', preview: '#0d9488',
     light: {
@@ -26,7 +40,6 @@ export const schemes = [
       '--gray-50':'#f0fdfa','--gray-100':'#e0f8f4','--gray-200':'#ccfbf1','--gray-300':'#b0c4c0','--gray-400':'#8aa8a3','--gray-500':'#6b8f8a','--gray-600':'#527570','--gray-700':'#3d5c58','--gray-800':'#2a4240','--gray-900':'#1a2d2b',
       '--glass-bg':'rgba(240,253,250,0.82)','--glass-border':'rgba(200,235,228,0.5)','--topbar-bg':'rgba(240,253,250,0.9)','--topbar-border':'rgba(184,236,228,0.55)',
       '--paper':'#ffffff',
-      '--amber':'#d97706','--amber-subtle':'#fffbeb','--red':'#dc2626','--red-light':'#ef4444','--red-subtle':'#fef2f2','--blue':'#0284c7','--blue-light':'#0ea5e9','--blue-subtle':'#f0f9ff','--purple':'#9333ea','--purple-subtle':'#faf5ff',
       '--amber':'#d97706','--amber-subtle':'#fffbeb','--red':'#dc2626','--red-light':'#ef4444','--red-subtle':'#fef2f2','--blue':'#0284c7','--blue-light':'#0ea5e9','--blue-subtle':'#f0f9ff','--purple':'#9333ea','--purple-subtle':'#faf5ff',
     },
     dark: {
@@ -185,17 +198,17 @@ export const schemes = [
 const SCHEME_KEY = 'notepad-theme'
 const DARK_KEY = 'notepad-dark'
 
-const currentScheme = ref('teal')
-const isDark = ref(false)
+const currentScheme = ref<string>('teal')
+const isDark = ref<boolean>(false)
 
 /** System preference */
-function systemDark () {
+function systemDark(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
 /** Apply all CSS custom properties to :root using a <style> tag (most reliable) */
-let styleEl = null
-function applyColors () {
+let styleEl: HTMLStyleElement | null = null
+function applyColors(): void {
   const scheme = schemes.find(s => s.id === currentScheme.value) || schemes[0]
   const palette = isDark.value ? scheme.dark : scheme.light
 
@@ -221,7 +234,7 @@ function applyColors () {
 // ── Public API ────────────────────────────────────────────
 
 /** Call before mount — sets initial theme from localStorage */
-export function initTheme () {
+export function initTheme(): void {
   const savedScheme = localStorage.getItem(SCHEME_KEY)
   if (savedScheme && schemes.some(s => s.id === savedScheme)) {
     currentScheme.value = savedScheme
@@ -232,32 +245,32 @@ export function initTheme () {
 }
 
 /** Composable — reactive theme + dark mode controls */
-export function useTheme () {
-  const setScheme = (id) => {
+export function useTheme() {
+  const setScheme = (id: string): void => {
     currentScheme.value = id
     localStorage.setItem(SCHEME_KEY, id)
     applyColors()
   }
 
-  const toggleDark = () => {
+  const toggleDark = (): void => {
     isDark.value = !isDark.value
     localStorage.setItem(DARK_KEY, String(isDark.value))
     applyColors()
   }
 
-  const setDark = (val) => {
+  const setDark = (val: boolean): void => {
     isDark.value = val
     localStorage.setItem(DARK_KEY, String(val))
     applyColors()
   }
 
-  const currentMeta = () => schemes.find(s => s.id === currentScheme.value) || schemes[0]
+  const currentMeta = (): ColorScheme => schemes.find(s => s.id === currentScheme.value) || schemes[0]
 
   // Re-apply when system preference changes (only if user hasn't manually set)
   onMounted(() => {
     applyColors()
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    mq.addEventListener('change', (e) => {
+    mq.addEventListener('change', (e: MediaQueryListEvent) => {
       // Only auto-switch if user hasn't explicitly chosen
       const savedDark = localStorage.getItem(DARK_KEY)
       if (savedDark === null) {

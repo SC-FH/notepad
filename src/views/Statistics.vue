@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Bar, Doughnut, Line } from 'vue-chartjs'
 import {
@@ -19,6 +19,7 @@ import db, {
   TASK_CATEGORY,
   STATUS_LABELS,
   CATEGORY_LABELS,
+  type Task,
 } from '../db'
 
 ChartJS.register(
@@ -26,13 +27,13 @@ ChartJS.register(
   PointElement, ArcElement, Title, Tooltip, Legend, Filler
 )
 
-const tasks = ref([])
-const period = ref('week')
+const tasks = ref<Task[]>([])
+const period = ref<string>('week')
 
-const loadTasks = async () => { tasks.value = await db.tasks.toArray() }
+const loadTasks = async (): Promise<void> => { tasks.value = await db.tasks.toArray() }
 
 // Chart colors
-const colors = {
+const colors: Record<string, string> = {
   accent: '#6366f1',
   green: '#10b981',
   blue: '#3b82f6',
@@ -99,8 +100,8 @@ const trendOpts = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'top',
-      align: 'end',
+      position: 'top' as const,
+      align: 'end' as const,
       labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8, font: { size: 12 } },
     },
   },
@@ -108,12 +109,12 @@ const trendOpts = {
     y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false } },
     x: { grid: { display: false }, ticks: { font: { size: 11 } }, border: { display: false } },
   },
-  interaction: { intersect: false, mode: 'index' },
+  interaction: { intersect: false, mode: 'index' as const },
 }
 
 // Status doughnut
 const statusData = computed(() => {
-  const counts = {}
+  const counts: Record<string, number> = {}
   Object.values(TASK_STATUS).forEach(s => { counts[s] = 0 })
   tasks.value.forEach(t => { counts[t.status]++ })
   return {
@@ -132,13 +133,13 @@ const doughnutOpts = {
   maintainAspectRatio: false,
   cutout: '70%',
   plugins: {
-    legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyleWidth: 8, font: { size: 11 } } },
+    legend: { position: 'bottom' as const, labels: { padding: 12, usePointStyle: true, pointStyleWidth: 8, font: { size: 11 } } },
   },
 }
 
 // Category bar
 const categoryData = computed(() => {
-  const counts = {}
+  const counts: Record<string, number> = {}
   Object.values(TASK_CATEGORY).forEach(c => { counts[c] = 0 })
   tasks.value.forEach(t => { counts[t.category]++ })
   return {
@@ -165,7 +166,7 @@ const barOpts = {
 
 // Priority doughnut
 const priorityData = computed(() => {
-  const counts = { low: 0, medium: 0, high: 0, urgent: 0 }
+  const counts: Record<string, number> = { low: 0, medium: 0, high: 0, urgent: 0 }
   tasks.value.forEach(t => { counts[t.priority]++ })
   return {
     labels: ['低', '中', '高', '紧急'],
@@ -187,14 +188,14 @@ const stats = computed(() => {
   const doneTasks = tasks.value.filter(t => t.completedAt && t.createdAt)
   let avgTime = '--'
   if (doneTasks.length > 0) {
-    const hrs = doneTasks.reduce((s, t) => s + (new Date(t.completedAt) - new Date(t.createdAt)) / 3600000, 0) / doneTasks.length
+    const hrs = doneTasks.reduce((s, t) => s + (new Date(t.completedAt!).getTime() - new Date(t.createdAt).getTime()) / 3600000, 0) / doneTasks.length
     avgTime = hrs < 1 ? `${Math.round(hrs * 60)}m` : hrs < 24 ? `${Math.round(hrs)}h` : `${Math.round(hrs / 24)}d`
   }
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
   const todayNew = tasks.value.filter(t => { const d = new Date(t.createdAt); return d >= today && d < tomorrow }).length
-  const todayDone = tasks.value.filter(t => { if (!t.completedAt) return false; const d = new Date(t.completedAt); return d >= today && d < tomorrow }).length
+  const todayDone = tasks.value.filter(t => { if (!t.completedAt) return false; const d = new Date(t.completedAt!); return d >= today && d < tomorrow }).length
 
   return { total, completed, rate, avgTime, todayNew, todayDone }
 })

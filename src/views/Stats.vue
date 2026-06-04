@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Line, Doughnut } from 'vue-chartjs'
 import {
@@ -6,7 +6,7 @@ import {
   CategoryScale, LinearScale, LineElement, PointElement,
   ArcElement, Tooltip, Legend, Filler,
 } from 'chart.js'
-import db, { TASK_STATUS, STATUS_LABELS } from '../db'
+import db, { TASK_STATUS, STATUS_LABELS, type Task } from '../db'
 import { useTheme } from '../composables/useTheme'
 
 ChartJS.register(
@@ -14,14 +14,14 @@ ChartJS.register(
   ArcElement, Tooltip, Legend, Filler
 )
 
-const tasks = ref([])
-const loadTasks = async () => { tasks.value = await db.tasks.toArray() }
+const tasks = ref<Task[]>([])
+const loadTasks = async (): Promise<void> => { tasks.value = await db.tasks.toArray() }
 
 // Track theme changes so chart colors recompute
 const { currentScheme } = useTheme()
 
 // Resolve CSS custom properties to computed color values for Chart.js
-function cssVar (name) {
+function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
@@ -42,7 +42,7 @@ const trend = computed(() => {
     const next = new Date(d); next.setDate(next.getDate() + 1)
     labels.push(`${d.getMonth() + 1}/${d.getDate()}`)
     created.push(tasks.value.filter(t => { const td = new Date(t.createdAt); return td >= d && td < next }).length)
-    completed.push(tasks.value.filter(t => { if (!t.completedAt) return false; const td = new Date(t.completedAt); return td >= d && td < next }).length)
+    completed.push(tasks.value.filter(t => { if (!t.completedAt) return false; const td = new Date(t.completedAt!); return td >= d && td < next }).length)
   }
   const blue = cssVar('--blue')
   const green = cssVar('--green')
@@ -85,8 +85,8 @@ const trendOpts = computed(() => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
-        align: 'end',
+        position: 'top' as const,
+        align: 'end' as const,
         labels: { padding: 14, boxWidth: 8, boxHeight: 8, font: { size: 11, family: 'Source Serif 4, Georgia, serif' } },
       },
     },
@@ -103,7 +103,7 @@ const trendOpts = computed(() => {
         border: { display: false },
       },
     },
-    interaction: { intersect: false, mode: 'index' },
+    interaction: { intersect: false, mode: 'index' as const },
   }
 })
 
@@ -137,7 +137,7 @@ const doughnutOpts = {
   },
   plugins: {
     legend: {
-      position: 'bottom',
+      position: 'bottom' as const,
       labels: {
         padding: 14,
         boxWidth: 8,
@@ -150,7 +150,7 @@ const doughnutOpts = {
 
 const streak = computed(() => {
   const doneDates = new Set(
-    tasks.value.filter(t => t.completedAt).map(t => new Date(t.completedAt).toISOString().slice(0, 10))
+    tasks.value.filter(t => t.completedAt).map(t => new Date(t.completedAt!).toISOString().slice(0, 10))
   )
   let count = 0
   const d = new Date(); d.setHours(0, 0, 0, 0)

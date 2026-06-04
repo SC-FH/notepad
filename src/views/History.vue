@@ -1,11 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import db, { TASK_STATUS } from '../db'
+import db, { TASK_STATUS, type Task } from '../db'
 import PdfExportModal from '../components/PdfExportModal.vue'
 
-const allTasks = ref([])
-const expandedDate = ref(null)
-const exportDay = ref(null)   // day object passed to PdfExportModal
+export interface DayGroup {
+  date: string
+  label: string
+  tasks: Task[]
+  total: number
+  done: number
+}
+
+export type GroupedItem =
+  | { type: 'group'; label: string }
+  | { type: 'day' } & DayGroup
+
+const allTasks = ref<Task[]>([])
+const expandedDate = ref<string | null>(null)
+const exportDay = ref<DayGroup | null>(null)   // day object passed to PdfExportModal
 
 const loadTasks = async () => {
   allTasks.value = await db.tasks.toArray()
@@ -13,18 +25,18 @@ const loadTasks = async () => {
 
 /* ---- date helpers ---- */
 
-function startOfDay (d) {
+function startOfDay(d: Date): Date {
   const t = new Date(d)
   t.setHours(0, 0, 0, 0)
   return t
 }
 
-function diffDays (a, b) {
+function diffDays(a: Date, b: Date): number {
   const msDay = 86400000
   return Math.floor((a.getTime() - b.getTime()) / msDay)
 }
 
-function groupLabel (isoKey) {
+function groupLabel(isoKey: string): string | null {
   const today = startOfDay(new Date())
   const d = new Date(isoKey + 'T00:00:00')
   const diff = diffDays(today, d)
@@ -37,7 +49,7 @@ function groupLabel (isoKey) {
 /* ---- computed ---- */
 
 const days = computed(() => {
-  const map = {}
+  const map: Record<string, DayGroup> = {}
   allTasks.value.forEach(t => {
     const d = startOfDay(new Date(t.createdAt))
     const key = d.toISOString().slice(0, 10)
@@ -54,9 +66,9 @@ const days = computed(() => {
 })
 
 /** Insert group-header rows into the flat list so the template can iterate once */
-const groupedDays = computed(() => {
-  const result = []
-  let lastGroup = Symbol()
+const groupedDays = computed((): GroupedItem[] => {
+  const result: GroupedItem[] = []
+  let lastGroup: string | symbol = Symbol()
   days.value.forEach(day => {
     const g = groupLabel(day.date)
     if (g && g !== lastGroup) {
@@ -68,7 +80,7 @@ const groupedDays = computed(() => {
   return result
 })
 
-function formatDate (d) {
+function formatDate(d: Date): string {
   const today = startOfDay(new Date())
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -78,11 +90,11 @@ function formatDate (d) {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${weekday}`
 }
 
-const toggleExpand = (date) => {
+const toggleExpand = (date: string): void => {
   expandedDate.value = expandedDate.value === date ? null : date
 }
 
-const rate = (day) => day.total === 0 ? 0 : Math.round((day.done / day.total) * 100)
+const rate = (day: DayGroup): number => day.total === 0 ? 0 : Math.round((day.done / day.total) * 100)
 
 onMounted(loadTasks)
 </script>

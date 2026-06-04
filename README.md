@@ -1,69 +1,92 @@
 # Notepad FH
 
-一个基于 Vue 3 + Vite 的个人记事本与任务管理应用，数据本地存储于浏览器 IndexedDB。
+**English** | [中文](./README.zh-CN.md)
 
-## 功能特性
+A personal notepad and task management app built with Vue 3 + Vite, with data stored locally in the browser's IndexedDB.
 
-- **今日视图** — 查看和管理今日任务
-- **任务管理** — 创建、编辑、完成任务
-- **仪表盘** — 总览任务状态和进度
-- **数据统计** — 通过图表可视化任务完成情况
-- **历史记录** — 查看过往任务完成记录
-- **PDF 导出** — 将任务数据导出为 PDF 文件
-- **主题切换** — 支持自定义主题颜色
-- **本地存储** — 使用 Dexie (IndexedDB) 离线存储，无需后端服务
+## Features
 
-## 技术栈
+- **Today View** — View and manage today's tasks
+- **Task Management** — Create, edit, and complete tasks
+- **Dashboard** — Overview of task status and progress
+- **Statistics** — Visualize task completion with charts
+- **History** — Browse past task completion records
+- **PDF Export** — Export task data to PDF files
+- **Theme Switching** — Customize theme colors
+- **Local Storage** — Offline storage via Dexie (IndexedDB), no backend required
 
-- [Vue 3](https://vuejs.org/) — 前端框架
-- [Vite](https://vitejs.dev/) — 构建工具
-- [Vue Router](https://router.vuejs.org/) — 路由管理
-- [Dexie](https://dexie.org/) — IndexedDB 封装库
-- [Chart.js](https://www.chartjs.org/) + [vue-chartjs](https://vue-chartjs.org/) — 图表可视化
-- [html2pdf.js](https://github.com/eKoopmans/html2pdf.js/) — PDF 生成
-- [Sass](https://sass-lang.com/) — CSS 预处理器
+## Tech Stack
 
-## 快速开始
+| Category | Technology |
+|----------|------------|
+| Frontend Framework | [Vue 3](https://vuejs.org/) |
+| Build Tool | [Vite](https://vitejs.dev/) |
+| Routing | [Vue Router](https://router.vuejs.org/) |
+| Database | [Dexie](https://dexie.org/) (IndexedDB) |
+| Charts | [Chart.js](https://www.chartjs.org/) + [vue-chartjs](https://vue-chartjs.org/) |
+| PDF Generation | [html2pdf.js](https://github.com/eKoopmans/html2pdf.js/) |
+| CSS Preprocessor | [Sass](https://sass-lang.com/) |
+| Type Checking | [TypeScript](https://www.typescriptlang.org/) |
 
-### 安装依赖
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) >= 18
+- npm >= 9
+
+### Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 启动开发服务器
+### Start Development Server
 
 ```bash
 npm run dev
 ```
 
-### 构建生产版本
+### Build for Production
 
 ```bash
 npm run build
 ```
 
-### 预览生产构建
+### Preview Production Build
 
 ```bash
 npm run preview
 ```
 
-## 项目结构
+### Type Check
+
+```bash
+npm run type-check
+```
+
+## Project Structure
 
 ```
 src/
-├── components/      # 公共组件
+├── components/      # Shared components
 │   ├── ThemePicker.vue
 │   └── PdfExportModal.vue
-├── composables/     # 组合式函数
-│   └── useTheme.js
-├── db/              # 数据库 (Dexie)
-│   └── index.js
-├── router/          # 路由配置
-│   └── index.js
-├── styles/          # 全局样式 (Sass)
-├── views/           # 页面视图
+├── composables/     # Composable functions
+│   └── useTheme.ts
+├── db/              # Database (Dexie)
+│   └── index.ts
+├── router/          # Route configuration
+│   └── index.ts
+├── styles/          # Global styles (Sass)
+│   ├── index.scss
+│   ├── _variables.scss
+│   ├── _mixins.scss
+│   ├── _base.scss
+│   ├── _layout.scss
+│   ├── _components.scss
+│   └── _animations.scss
+├── views/           # Page views
 │   ├── Today.vue
 │   ├── Tasks.vue
 │   ├── Dashboard.vue
@@ -71,9 +94,9 @@ src/
 │   ├── Statistics.vue
 │   └── History.vue
 ├── App.vue
-└── main.js
+└── main.ts
 ```
 
-## 许可证
+## License
 
-本项目基于 [MIT 许可证](./LICENSE) 开源。
+This project is licensed under the [MIT License](./LICENSE).

@@ -1,19 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS, TASK_STATUS } from '../db'
+import type { DayGroup } from '../views/History.vue'
 
-const props = defineProps({
-  visible: { type: Boolean, default: false },
-  day: { type: Object, default: null },
-})
+const props = defineProps<{
+  visible: boolean
+  day: DayGroup | null
+}>()
 
-const emit = defineEmits(['close'])
+const emit = defineEmits<{
+  close: []
+}>()
 
 /* ═══════════════════════════════════════════════════════
    Section toggles
    ═══════════════════════════════════════════════════════ */
 const customTitle = ref('')
-const sections = ref({
+const sections = ref<Record<string, boolean>>({
   title: true,
   summary: true,
   taskList: true,
@@ -22,7 +25,7 @@ const sections = ref({
   footer: true,
 })
 
-const statusFilter = ref({
+const statusFilter = ref<Record<string, boolean>>({
   completed: true,
   in_progress: true,
   pending: true,
@@ -59,7 +62,7 @@ const dayStats = computed(() => {
 /* ═══════════════════════════════════════════════════════
    Build PDF HTML
    ═══════════════════════════════════════════════════════ */
-function buildPdfHtml () {
+function buildPdfHtml(): string {
   if (!props.day) return ''
   const s = sections.value
   const stats = dayStats.value
@@ -122,9 +125,9 @@ function buildPdfHtml () {
    Export
    ═══════════════════════════════════════════════════════ */
 const exporting = ref(false)
-const previewBoxRef = ref(null)
+const previewBoxRef = ref<HTMLElement | null>(null)
 
-const handleExport = async () => {
+const handleExport = async (): Promise<void> => {
   if (!props.day || exporting.value || !previewBoxRef.value) return
   exporting.value = true
   try {

@@ -1,13 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import ThemePicker from './components/ThemePicker.vue'
 import { useTheme } from './composables/useTheme'
 
 const route = useRoute()
-const tabsRef = ref(null)
-const tabRefs = ref([])
-const sliderStyle = ref({})
+const tabsRef = ref<HTMLElement | null>(null)
+const tabRefs = ref<any[]>([])
+const sliderStyle = ref<Record<string, string>>({})
 
 // Initialize theme system
 const { currentScheme } = useTheme()
@@ -38,16 +38,16 @@ const tabs = [
   },
 ]
 
-function setTabRef(el, index) {
+function setTabRef(el: any, index: number): void {
   if (el) tabRefs.value[index] = el
 }
 
-function getEl(ref) {
+function getEl(ref: any): HTMLElement | null {
   // router-link is a component — get its root DOM element
   return ref?.$el || ref
 }
 
-function updateSlider() {
+function updateSlider(): void {
   const activeIndex = tabs.findIndex((t) => t.path === route.path)
   const el = getEl(tabRefs.value[activeIndex])
   const container = tabsRef.value

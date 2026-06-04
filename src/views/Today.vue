@@ -1,14 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import db, { TASK_STATUS } from '../db'
+import db, { TASK_STATUS, type Task, type TaskStatus } from '../db'
 
-const tasks = ref([])
+const tasks = ref<Task[]>([])
 const newTitle = ref('')
-const inputRef = ref(null)
-const editingId = ref(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+const editingId = ref<number | null>(null)
 const editText = ref('')
-const editRef = ref(null)
-const removingId = ref(null)
+const editRef = ref<HTMLInputElement | null>(null)
+const removingId = ref<number | null>(null)
 
 const today = new Date()
 today.setHours(0, 0, 0, 0)
@@ -24,7 +24,7 @@ const todayMonthWeekday = today.toLocaleDateString('zh-CN', {
   weekday: 'long',
 })
 
-const loadTasks = async () => {
+const loadTasks = async (): Promise<void> => {
   const all = await db.tasks.toArray()
   tasks.value = all
     .filter(t => {
@@ -32,7 +32,7 @@ const loadTasks = async () => {
       d.setHours(0, 0, 0, 0)
       return d.getTime() === today.getTime()
     })
-    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 }
 
 const pending = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.PENDING))
@@ -44,7 +44,7 @@ const progress = computed(() => {
 })
 const isComplete = computed(() => progress.value === 100 && tasks.value.length > 0)
 
-const addTask = async () => {
+const addTask = async (): Promise<void> => {
   const title = newTitle.value.trim()
   if (!title) return
   await db.tasks.add({
@@ -62,8 +62,9 @@ const addTask = async () => {
   nextTick(() => inputRef.value?.focus())
 }
 
-const cycleStatus = async (task) => {
-  let newStatus, completedAt = null
+const cycleStatus = async (task: Task): Promise<void> => {
+  let newStatus: TaskStatus
+  let completedAt: string | null = null
   if (task.status === TASK_STATUS.PENDING) {
     newStatus = TASK_STATUS.IN_PROGRESS
   } else if (task.status === TASK_STATUS.IN_PROGRESS) {
@@ -72,11 +73,12 @@ const cycleStatus = async (task) => {
   } else {
     newStatus = TASK_STATUS.PENDING
   }
-  await db.tasks.update(task.id, { status: newStatus, completedAt })
+  await db.tasks.update(task.id!, { status: newStatus, completedAt })
   await loadTasks()
 }
 
-const remove = async (id) => {
+const remove = async (id: number | undefined): Promise<void> => {
+  if (id === undefined) return
   removingId.value = id
   // Wait for the fade-out animation to finish
   await new Promise(resolve => setTimeout(resolve, 300))
@@ -85,16 +87,16 @@ const remove = async (id) => {
   await loadTasks()
 }
 
-const startEdit = (task) => {
-  editingId.value = task.id
+const startEdit = (task: Task): void => {
+  editingId.value = task.id ?? null
   editText.value = task.title
   nextTick(() => editRef.value?.focus())
 }
 
-const saveEdit = async (task) => {
+const saveEdit = async (task: Task): Promise<void> => {
   const title = editText.value.trim()
   if (title && title !== task.title) {
-    await db.tasks.update(task.id, { title })
+    await db.tasks.update(task.id!, { title })
   }
   editingId.value = null
   await loadTasks()
@@ -102,7 +104,7 @@ const saveEdit = async (task) => {
 
 const cancelEdit = () => { editingId.value = null }
 
-const onKeydown = (e) => {
+const onKeydown = (e: KeyboardEvent): void => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     addTask()
@@ -186,7 +188,7 @@ onMounted(loadTasks)
               <span class="task-text">{{ task.title }}</span>
             </template>
           </div>
-          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id)">
+          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id!)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -230,7 +232,7 @@ onMounted(loadTasks)
               <span class="task-text active-text">{{ task.title }}</span>
             </template>
           </div>
-          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id)">
+          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id!)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -262,7 +264,7 @@ onMounted(loadTasks)
           <span class="task-text strike">
             <span class="strike-inner">{{ task.title }}</span>
           </span>
-          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id)">
+          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id!)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />

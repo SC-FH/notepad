@@ -1,21 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useTheme } from '../composables/useTheme'
 
 const { schemes, currentScheme, isDark, setScheme, toggleDark, currentMeta } = useTheme()
 const open = ref(false)
-const pickerRef = ref(null)
+const pickerRef = ref<HTMLElement | null>(null)
 
-const toggle = () => { open.value = !open.value }
+const toggle = (): void => { open.value = !open.value }
 
-const select = (id) => {
+const select = (id: string): void => {
   setScheme(id)
   open.value = false
 }
 
 // Close on outside click
-const onClickOutside = (e) => {
-  if (pickerRef.value && !pickerRef.value.contains(e.target)) {
+const onClickOutside = (e: MouseEvent): void => {
+  if (pickerRef.value && !pickerRef.value.contains(e.target as Node)) {
     open.value = false
   }
 }

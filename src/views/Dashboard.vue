@@ -1,12 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import db, { TASK_STATUS, PRIORITY_LABELS, STATUS_LABELS } from '../db'
+import db, { TASK_STATUS, PRIORITY_LABELS, STATUS_LABELS, type Task } from '../db'
 
 const router = useRouter()
-const tasks = ref([])
+const tasks = ref<Task[]>([])
 
-const loadTasks = async () => {
+const loadTasks = async (): Promise<void> => {
   tasks.value = await db.tasks.toArray()
 }
 
@@ -39,7 +39,7 @@ const todayRate = computed(() => {
 
 const recentTasks = computed(() => {
   return [...tasks.value]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6)
 })
 
