@@ -198,7 +198,7 @@ export const schemes: ColorScheme[] = [
 const SCHEME_KEY = 'notepad-theme'
 const DARK_KEY = 'notepad-dark'
 
-const currentScheme = ref<string>('teal')
+const currentScheme = ref<string>('ocean')
 const isDark = ref<boolean>(false)
 
 /** System preference */

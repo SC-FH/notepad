@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useTheme } from '../composables/useTheme'
+import { useLocale } from '../composables/useLocale'
 
 const { schemes, currentScheme, isDark, setScheme, toggleDark, currentMeta } = useTheme()
+const { t } = useLocale()
 const open = ref(false)
 const pickerRef = ref<HTMLElement | null>(null)
 
@@ -30,8 +32,8 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
       <!-- Dark mode toggle -->
       <button
         class="picker-btn"
-        :title="isDark ? '切换为浅色模式' : '切换为深色模式'"
-        :aria-label="isDark ? '切换为浅色模式' : '切换为深色模式'"
+        :title="isDark ? t('theme.switchToLight') : t('theme.switchToDark')"
+        :aria-label="isDark ? t('theme.switchToLight') : t('theme.switchToDark')"
         @click="toggleDark"
       >
         <!-- Sun icon (light mode) -->
@@ -55,8 +57,8 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
       <!-- Color scheme picker -->
       <button
         class="picker-btn"
-        :title="`配色方案: ${currentMeta().name}`"
-        aria-label="选择配色方案"
+        :title="`${t('theme.colorScheme')}: ${t('theme.' + currentMeta().id)}`"
+        :aria-label="t('theme.selectScheme')"
         @click="toggle"
       >
         <svg class="picker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -70,8 +72,8 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
     </div>
 
     <Transition name="dropdown">
-      <div v-if="open" class="picker-dropdown" role="listbox" aria-label="配色方案列表">
-        <div class="picker-header">配色方案</div>
+      <div v-if="open" class="picker-dropdown" role="listbox" :aria-label="t('theme.schemeList')">
+        <div class="picker-header">{{ t('theme.colorScheme') }}</div>
         <button
           v-for="scheme in schemes"
           :key="scheme.id"
@@ -82,7 +84,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
           @click="select(scheme.id)"
         >
           <span class="option-swatch" :style="{ background: scheme.preview }" />
-          <span class="option-name">{{ scheme.name }}</span>
+          <span class="option-name">{{ t('theme.' + scheme.id) }}</span>
           <svg v-if="currentScheme === scheme.id" class="option-check" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>

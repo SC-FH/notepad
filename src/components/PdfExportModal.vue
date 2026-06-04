@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS, TASK_STATUS } from '../db'
+import { TASK_STATUS } from '../db'
+import { useLocale } from '../composables/useLocale'
+import { useLabels } from '../composables/useLabels'
 import type { DayGroup } from '../views/History.vue'
+
+const { t, currentLocale } = useLocale()
+const { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS } = useLabels()
 
 const props = defineProps<{
   visible: boolean
@@ -32,9 +37,16 @@ const statusFilter = ref<Record<string, boolean>>({
   cancelled: false,
 })
 
+const statusFilterLabels = computed(() => ({
+  completed: t('db.status.completed'),
+  in_progress: t('db.status.in_progress'),
+  pending: t('db.status.pending'),
+  cancelled: t('db.status.cancelled'),
+}))
+
 watch(() => props.visible, (v) => {
   if (v && props.day) {
-    customTitle.value = `${props.day.date} 任务报告`
+    customTitle.value = t('pdf.taskReport', { date: props.day.date })
     sections.value = { title: true, summary: true, taskList: true, priority: false, category: false, footer: true }
     statusFilter.value = { completed: true, in_progress: true, pending: true, cancelled: false }
   }
@@ -70,7 +82,7 @@ function buildPdfHtml(): string {
   let html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;color:#134e4a;padding:40px 48px;max-width:680px;">`
 
   if (s.title) {
-    const title = customTitle.value || `${props.day.date} 任务报告`
+    const title = customTitle.value || t('pdf.taskReport', { date: props.day.date })
     html += `<div style="text-align:center;margin-bottom:28px;">
       <h1 style="font-size:24px;font-weight:700;color:#0d9488;margin:0 0 6px 0;letter-spacing:0.5px;">${title}</h1>
       <p style="font-size:13px;color:#6b7280;margin:0;">${props.day.date}</p>
@@ -79,29 +91,29 @@ function buildPdfHtml(): string {
 
   if (s.summary) {
     html += `<div style="display:flex;justify-content:center;gap:40px;padding:18px 24px;background:#f0fdfa;border-radius:10px;margin-bottom:28px;">
-      <div style="text-align:center;"><div style="font-size:26px;font-weight:700;color:#0d9488;">${stats.total}</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">总任务</div></div>
-      <div style="text-align:center;"><div style="font-size:26px;font-weight:700;color:#16a34a;">${stats.done}</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">已完成</div></div>
-      <div style="text-align:center;"><div style="font-size:26px;font-weight:700;color:#0d9488;">${stats.rate}%</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">完成率</div></div>
+      <div style="text-align:center;"><div style="font-size:26px;font-weight:700;color:#0d9488;">${stats.total}</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">${t('pdf.totalTasks')}</div></div>
+      <div style="text-align:center;"><div style="font-size:26px;font-weight:700;color:#16a34a;">${stats.done}</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">${t('pdf.completedLabel')}</div></div>
+      <div style="text-align:center;"><div style="font-size:26px;font-weight:700;color:#0d9488;">${stats.rate}%</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">${t('pdf.completionRate')}</div></div>
     </div>`
   }
 
   if (s.taskList && tasks.length > 0) {
-    let ths = `<th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;">任务</th>
-      <th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;white-space:nowrap;">状态</th>`
-    if (s.priority) ths += `<th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;white-space:nowrap;">优先级</th>`
-    if (s.category) ths += `<th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;white-space:nowrap;">分类</th>`
+    let ths = `<th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;">${t('pdf.colTask')}</th>
+      <th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;white-space:nowrap;">${t('pdf.colStatus')}</th>`
+    if (s.priority) ths += `<th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;white-space:nowrap;">${t('pdf.colPriority')}</th>`
+    if (s.category) ths += `<th style="padding:10px 12px;text-align:left;font-weight:600;color:#0d9488;border-bottom:2px solid #99f6e4;white-space:nowrap;">${t('pdf.colCategory')}</th>`
 
-    const rows = tasks.map(t => {
-      const isDone = t.status === TASK_STATUS.COMPLETED
-      const statusLabel = STATUS_LABELS[t.status] || t.status
-      const statusColor = isDone ? '#16a34a' : t.status === TASK_STATUS.IN_PROGRESS ? '#0284c7' : t.status === TASK_STATUS.CANCELLED ? '#dc2626' : '#9ca3af'
+    const rows = tasks.map(task => {
+      const isDone = task.status === TASK_STATUS.COMPLETED
+      const statusLabel = STATUS_LABELS.value[task.status] || task.status
+      const statusColor = isDone ? '#16a34a' : task.status === TASK_STATUS.IN_PROGRESS ? '#0284c7' : task.status === TASK_STATUS.CANCELLED ? '#dc2626' : '#9ca3af'
       let tds = `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusColor};margin-right:8px;vertical-align:middle;"></span>
-        <span style="vertical-align:middle;">${t.title}</span>
+        <span style="vertical-align:middle;">${task.title}</span>
       </td>
       <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${statusLabel}</td>`
-      if (s.priority) tds += `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${PRIORITY_LABELS[t.priority] || t.priority || '—'}</td>`
-      if (s.category) tds += `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${CATEGORY_LABELS[t.category] || t.category || '—'}</td>`
+      if (s.priority) tds += `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${PRIORITY_LABELS.value[task.priority] || task.priority || '—'}</td>`
+      if (s.category) tds += `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${CATEGORY_LABELS.value[task.category] || task.category || '—'}</td>`
       return `<tr>${tds}</tr>`
     }).join('')
 
@@ -113,7 +125,7 @@ function buildPdfHtml(): string {
 
   if (s.footer) {
     html += `<div style="margin-top:36px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:11px;color:#9ca3af;">
-      生成于 ${new Date().toLocaleString('zh-CN')}
+      ${t('pdf.generatedAt', { time: new Date().toLocaleString(currentLocale.value) })}
     </div>`
   }
 
@@ -133,7 +145,7 @@ const handleExport = async (): Promise<void> => {
   try {
     const html2pdf = (await import('html2pdf.js')).default
     const el = previewBoxRef.value
-    const filename = `${customTitle.value || props.day.date + '任务报告'}.pdf`
+    const filename = `${customTitle.value || t('pdf.taskReport', { date: props.day.date })}.pdf`
     await html2pdf()
       .set({
         margin: [10, 10, 10, 10],
@@ -159,8 +171,8 @@ const handleExport = async (): Promise<void> => {
         <div class="modal-panel" @click.stop>
           <!-- ─── header ─── -->
           <div class="modal-header">
-            <h3 class="modal-title">导出 PDF</h3>
-            <button class="modal-close" @click="emit('close')" aria-label="关闭">
+            <h3 class="modal-title">{{ t('pdf.title') }}</h3>
+            <button class="modal-close" @click="emit('close')" :aria-label="t('pdf.close')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
@@ -169,7 +181,7 @@ const handleExport = async (): Promise<void> => {
           <div class="modal-content">
             <!-- LEFT: preview -->
             <div class="preview-pane">
-              <div class="preview-label">实时预览</div>
+              <div class="preview-label">{{ t('pdf.livePreview') }}</div>
               <div class="preview-box" ref="previewBoxRef">
                 <div v-html="buildPdfHtml()"></div>
               </div>
@@ -179,36 +191,36 @@ const handleExport = async (): Promise<void> => {
             <div class="opt-pane">
               <!-- title -->
               <div class="opt-group">
-                <label class="opt-label">自定义标题</label>
-                <input v-model="customTitle" type="text" class="opt-input" placeholder="输入 PDF 标题" />
+                <label class="opt-label">{{ t('pdf.customTitle') }}</label>
+                <input v-model="customTitle" type="text" class="opt-input" :placeholder="t('pdf.titlePlaceholder')" />
               </div>
 
               <!-- section toggles -->
               <div class="opt-group">
-                <label class="opt-label">模块选择</label>
+                <label class="opt-label">{{ t('pdf.moduleSelection') }}</label>
                 <div class="toggle-grid">
                   <div class="toggle-row">
-                    <span class="toggle-text">标题区域</span>
+                    <span class="toggle-text">{{ t('pdf.titleSection') }}</span>
                     <button class="toggle" :class="{ on: sections.title }" @click="sections.title = !sections.title" role="switch" :aria-checked="sections.title"><span class="toggle-knob"></span></button>
                   </div>
                   <div class="toggle-row">
-                    <span class="toggle-text">完成率统计</span>
+                    <span class="toggle-text">{{ t('pdf.summarySection') }}</span>
                     <button class="toggle" :class="{ on: sections.summary }" @click="sections.summary = !sections.summary" role="switch" :aria-checked="sections.summary"><span class="toggle-knob"></span></button>
                   </div>
                   <div class="toggle-row">
-                    <span class="toggle-text">任务列表</span>
+                    <span class="toggle-text">{{ t('pdf.taskListSection') }}</span>
                     <button class="toggle" :class="{ on: sections.taskList }" @click="sections.taskList = !sections.taskList" role="switch" :aria-checked="sections.taskList"><span class="toggle-knob"></span></button>
                   </div>
                   <div class="toggle-row">
-                    <span class="toggle-text">显示优先级</span>
+                    <span class="toggle-text">{{ t('pdf.showPriority') }}</span>
                     <button class="toggle" :class="{ on: sections.priority }" @click="sections.priority = !sections.priority" role="switch" :aria-checked="sections.priority"><span class="toggle-knob"></span></button>
                   </div>
                   <div class="toggle-row">
-                    <span class="toggle-text">显示分类</span>
+                    <span class="toggle-text">{{ t('pdf.showCategory') }}</span>
                     <button class="toggle" :class="{ on: sections.category }" @click="sections.category = !sections.category" role="switch" :aria-checked="sections.category"><span class="toggle-knob"></span></button>
                   </div>
                   <div class="toggle-row">
-                    <span class="toggle-text">生成时间脚注</span>
+                    <span class="toggle-text">{{ t('pdf.footerSection') }}</span>
                     <button class="toggle" :class="{ on: sections.footer }" @click="sections.footer = !sections.footer" role="switch" :aria-checked="sections.footer"><span class="toggle-knob"></span></button>
                   </div>
                 </div>
@@ -216,10 +228,10 @@ const handleExport = async (): Promise<void> => {
 
               <!-- status filter -->
               <div class="opt-group" v-if="sections.taskList">
-                <label class="opt-label">状态筛选</label>
+                <label class="opt-label">{{ t('pdf.statusFilter') }}</label>
                 <div class="status-chips">
                   <button
-                    v-for="(label, key) in { completed: '已完成', in_progress: '进行中', pending: '待办', cancelled: '已取消' }"
+                    v-for="(label, key) in statusFilterLabels"
                     :key="key"
                     class="chip"
                     :class="{ active: statusFilter[key] }"
@@ -232,20 +244,20 @@ const handleExport = async (): Promise<void> => {
               </div>
 
               <!-- task count -->
-              <div class="opt-hint" v-if="sections.taskList">已选 {{ filteredTasks.length }} / {{ totalAll }} 条任务</div>
-              <div class="opt-hint" v-else-if="!sections.title && !sections.summary && !sections.taskList && !sections.footer">请至少开启一个模块</div>
+              <div class="opt-hint" v-if="sections.taskList">{{ t('pdf.selectedTasks', { count: filteredTasks.length, total: totalAll }) }}</div>
+              <div class="opt-hint" v-else-if="!sections.title && !sections.summary && !sections.taskList && !sections.footer">{{ t('pdf.atLeastOneModule') }}</div>
             </div>
           </div>
 
           <!-- ─── footer ─── -->
           <div class="modal-footer">
-            <button class="btn btn--ghost" @click="emit('close')">取消</button>
+            <button class="btn btn--ghost" @click="emit('close')">{{ t('common.cancel') }}</button>
             <button
               class="btn btn--primary"
               :disabled="exporting || (sections.taskList && filteredTasks.length === 0) || (!sections.title && !sections.summary && !sections.taskList && !sections.footer)"
               @click="handleExport"
             >
-              {{ exporting ? '导出中...' : '导出 PDF' }}
+              {{ exporting ? t('pdf.exporting') : t('pdf.exportPdf') }}
             </button>
           </div>
         </div>

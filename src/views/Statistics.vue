@@ -17,10 +17,13 @@ import {
 import db, {
   TASK_STATUS,
   TASK_CATEGORY,
-  STATUS_LABELS,
-  CATEGORY_LABELS,
   type Task,
 } from '../db'
+import { useLocale } from '../composables/useLocale'
+import { useLabels } from '../composables/useLabels'
+
+const { t, currentLocale } = useLocale()
+const { STATUS_LABELS, CATEGORY_LABELS, PRIORITY_LABELS } = useLabels()
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement, LineElement,
@@ -70,7 +73,7 @@ const trendData = computed(() => {
     labels,
     datasets: [
       {
-        label: '新建',
+        label: t('statistics.trendCreated'),
         data: created,
         borderColor: colors.blue,
         backgroundColor: 'rgba(59, 130, 246, 0.08)',
@@ -81,7 +84,7 @@ const trendData = computed(() => {
         borderWidth: 2,
       },
       {
-        label: '完成',
+        label: t('statistics.trendCompleted'),
         data: completed,
         borderColor: colors.green,
         backgroundColor: 'rgba(16, 185, 129, 0.08)',
@@ -118,7 +121,7 @@ const statusData = computed(() => {
   Object.values(TASK_STATUS).forEach(s => { counts[s] = 0 })
   tasks.value.forEach(t => { counts[t.status]++ })
   return {
-    labels: Object.values(STATUS_LABELS),
+    labels: Object.values(STATUS_LABELS.value),
     datasets: [{
       data: Object.values(counts),
       backgroundColor: [colors.gray, colors.blue, colors.green, colors.red],
@@ -143,7 +146,7 @@ const categoryData = computed(() => {
   Object.values(TASK_CATEGORY).forEach(c => { counts[c] = 0 })
   tasks.value.forEach(t => { counts[t.category]++ })
   return {
-    labels: Object.values(CATEGORY_LABELS),
+    labels: Object.values(CATEGORY_LABELS.value),
     datasets: [{
       data: Object.values(counts),
       backgroundColor: [colors.blue, colors.accent, '#06b6d4', colors.amber, colors.gray],
@@ -169,7 +172,7 @@ const priorityData = computed(() => {
   const counts: Record<string, number> = { low: 0, medium: 0, high: 0, urgent: 0 }
   tasks.value.forEach(t => { counts[t.priority]++ })
   return {
-    labels: ['低', '中', '高', '紧急'],
+    labels: Object.values(PRIORITY_LABELS.value),
     datasets: [{
       data: Object.values(counts),
       backgroundColor: [colors.green, colors.blue, colors.amber, colors.red],
@@ -206,8 +209,8 @@ onMounted(loadTasks)
 <template>
   <div>
     <div class="page-header">
-      <h2>统计</h2>
-      <p>任务完成情况与趋势</p>
+      <h2>{{ t('statistics.title') }}</h2>
+      <p>{{ t('statistics.subtitle') }}</p>
     </div>
 
     <!-- Stats -->
@@ -217,28 +220,28 @@ onMounted(loadTasks)
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
         </div>
         <div class="stat-value">{{ stats.rate }}%</div>
-        <div class="stat-label">完成率</div>
+        <div class="stat-label">{{ t('statistics.completionRate') }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background: var(--green-subtle); color: var(--green)">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
         </div>
         <div class="stat-value">{{ stats.avgTime }}</div>
-        <div class="stat-label">平均耗时</div>
+        <div class="stat-label">{{ t('statistics.avgTime') }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background: var(--blue-subtle); color: var(--blue)">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
         </div>
         <div class="stat-value">{{ stats.todayNew }}</div>
-        <div class="stat-label">今日新建</div>
+        <div class="stat-label">{{ t('statistics.todayNew') }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background: var(--green-subtle); color: var(--green)">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
         </div>
         <div class="stat-value">{{ stats.todayDone }}</div>
-        <div class="stat-label">今日完成</div>
+        <div class="stat-label">{{ t('statistics.todayDone') }}</div>
       </div>
     </div>
 
@@ -246,16 +249,16 @@ onMounted(loadTasks)
     <div class="charts-grid">
       <div class="card chart-card wide">
         <div class="card-header">
-          <span class="card-title">趋势</span>
+          <span class="card-title">{{ t('statistics.trend') }}</span>
           <div class="period-toggle">
             <button
               :class="['btn btn-sm', period === 'week' ? 'btn-primary' : 'btn-ghost']"
               @click="period = 'week'"
-            >7天</button>
+            >{{ t('statistics.days7') }}</button>
             <button
               :class="['btn btn-sm', period === 'month' ? 'btn-primary' : 'btn-ghost']"
               @click="period = 'month'"
-            >30天</button>
+            >{{ t('statistics.days30') }}</button>
           </div>
         </div>
         <div class="chart-container">
@@ -265,7 +268,7 @@ onMounted(loadTasks)
 
       <div class="card chart-card">
         <div class="card-header">
-          <span class="card-title">状态</span>
+          <span class="card-title">{{ t('statistics.status') }}</span>
         </div>
         <div class="chart-container">
           <Doughnut :data="statusData" :options="doughnutOpts" />
@@ -274,7 +277,7 @@ onMounted(loadTasks)
 
       <div class="card chart-card">
         <div class="card-header">
-          <span class="card-title">分类</span>
+          <span class="card-title">{{ t('statistics.category') }}</span>
         </div>
         <div class="chart-container">
           <Bar :data="categoryData" :options="barOpts" />
@@ -283,7 +286,7 @@ onMounted(loadTasks)
 
       <div class="card chart-card">
         <div class="card-header">
-          <span class="card-title">优先级</span>
+          <span class="card-title">{{ t('statistics.priority') }}</span>
         </div>
         <div class="chart-container">
           <Doughnut :data="priorityData" :options="doughnutOpts" />

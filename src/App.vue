@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import ThemePicker from './components/ThemePicker.vue'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import { useTheme } from './composables/useTheme'
+import { useLocale } from './composables/useLocale'
 
 const route = useRoute()
 const tabsRef = ref<HTMLElement | null>(null)
@@ -11,11 +13,12 @@ const sliderStyle = ref<Record<string, string>>({})
 
 // Initialize theme system
 const { currentScheme } = useTheme()
+const { t, currentLocale } = useLocale()
 
-const tabs = [
+const tabs = computed(() => [
   {
     path: '/',
-    label: '今天',
+    label: t('nav.today'),
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
       <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -23,20 +26,20 @@ const tabs = [
   },
   {
     path: '/history',
-    label: '历史',
+    label: t('nav.history'),
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
     </svg>`,
   },
   {
     path: '/stats',
-    label: '统计',
+    label: t('nav.stats'),
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
       <line x1="6" y1="20" x2="6" y2="14"/>
     </svg>`,
   },
-]
+])
 
 function setTabRef(el: any, index: number): void {
   if (el) tabRefs.value[index] = el
@@ -48,7 +51,7 @@ function getEl(ref: any): HTMLElement | null {
 }
 
 function updateSlider(): void {
-  const activeIndex = tabs.findIndex((t) => t.path === route.path)
+  const activeIndex = tabs.value.findIndex((tab) => tab.path === route.path)
   const el = getEl(tabRefs.value[activeIndex])
   const container = tabsRef.value
   if (!el || !container || typeof el.getBoundingClientRect !== 'function') return
@@ -63,6 +66,7 @@ function updateSlider(): void {
 }
 
 watch(() => route.path, () => nextTick(updateSlider))
+watch(currentLocale, () => nextTick(updateSlider))
 onMounted(() => {
   updateSlider()
   window.addEventListener('resize', updateSlider)
@@ -79,10 +83,10 @@ onUnmounted(() => window.removeEventListener('resize', updateSlider))
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
-          <span class="brand-text">记事本</span>
+          <span class="brand-text">{{ t('common.appName') }}</span>
         </div>
         <div class="topbar-right">
-          <nav ref="tabsRef" class="tabs" role="navigation" aria-label="主导航">
+          <nav ref="tabsRef" class="tabs" role="navigation" :aria-label="t('nav.navAria')">
             <div class="tabs-slider" :style="sliderStyle" aria-hidden="true" />
             <router-link
               v-for="(tab, i) in tabs"
@@ -96,7 +100,20 @@ onUnmounted(() => window.removeEventListener('resize', updateSlider))
               <span class="tab-label">{{ tab.label }}</span>
             </router-link>
           </nav>
+          <LanguageSwitcher />
           <ThemePicker />
+          <a
+            class="github-link"
+            href="https://github.com/SC-FH/notepad"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="GitHub"
+            :aria-label="t('nav.githubAria')"
+          >
+            <svg class="github-icon" viewBox="0 0 19 19" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M9.356 1.85C5.05 1.85 1.57 5.356 1.57 9.694a7.84 7.84 0 0 0 5.324 7.44c.387.079.528-.168.528-.376 0-.182-.013-.805-.013-1.454-2.165.467-2.616-.935-2.616-.935-.349-.91-.864-1.143-.864-1.143-.71-.48.051-.48.051-.48.787.051 1.2.805 1.2.805.695 1.194 1.817.857 2.268.649.064-.507.27-.857.49-1.052-1.728-.182-3.545-.857-3.545-3.87 0-.857.31-1.558.8-2.104-.078-.195-.349-1 .077-2.078 0 0 .657-.208 2.14.805a7.5 7.5 0 0 1 1.946-.26c.657 0 1.328.092 1.946.26 1.483-1.013 2.14-.805 2.14-.805.426 1.078.155 1.883.078 2.078.502.546.799 1.247.799 2.104 0 3.013-1.818 3.675-3.558 3.87.284.247.528.714.528 1.454 0 1.052-.012 1.896-.012 2.156 0 .208.142.455.528.377a7.84 7.84 0 0 0 5.324-7.441c.013-4.338-3.48-7.844-7.773-7.844" clip-rule="evenodd"/>
+            </svg>
+          </a>
         </div>
       </div>
     </header>
@@ -181,6 +198,31 @@ $content-max: 720px;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+// ── GitHub link ───────────────────────────────────────────
+.github-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  color: var(--ink-3);
+  text-decoration: none;
+  transition: color var(--duration-normal) var(--ease-out),
+    background var(--duration-normal) var(--ease-out);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ink);
+    background: var(--cream);
+  }
+}
+
+.github-icon {
+  width: 18px;
+  height: 18px;
 }
 
 // ── Tab bar ──────────────────────────────────────────────

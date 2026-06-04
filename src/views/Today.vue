@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import db, { TASK_STATUS, type Task, type TaskStatus } from '../db'
+import { useLocale } from '../composables/useLocale'
+
+const { t, currentLocale } = useLocale()
 
 const tasks = ref<Task[]>([])
 const newTitle = ref('')
@@ -13,16 +16,16 @@ const removingId = ref<number | null>(null)
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 const todayStr = today.toISOString().slice(0, 10)
-const todayLabel = today.toLocaleDateString('zh-CN', {
+const todayLabel = computed(() => today.toLocaleDateString(currentLocale.value, {
   month: 'long',
   day: 'numeric',
   weekday: 'long',
-})
-const todayDay = today.toLocaleDateString('zh-CN', { day: 'numeric' })
-const todayMonthWeekday = today.toLocaleDateString('zh-CN', {
+}))
+const todayDay = computed(() => today.toLocaleDateString(currentLocale.value, { day: 'numeric' }))
+const todayMonthWeekday = computed(() => today.toLocaleDateString(currentLocale.value, {
   month: 'long',
   weekday: 'long',
-})
+}))
 
 const loadTasks = async (): Promise<void> => {
   const all = await db.tasks.toArray()
@@ -143,7 +146,7 @@ onMounted(loadTasks)
 
     <!-- Input -->
     <div class="input-area">
-      <label for="task-input" class="sr-only">添加新任务</label>
+      <label for="task-input" class="sr-only">{{ t('today.addTask') }}</label>
       <div class="input-wrapper">
         <span class="input-icon" aria-hidden="true">+</span>
         <input
@@ -151,8 +154,8 @@ onMounted(loadTasks)
           ref="inputRef"
           v-model="newTitle"
           class="note-input"
-          placeholder="写下今天的任务..."
-          aria-label="添加新任务"
+          :placeholder="t('today.placeholder')"
+          :aria-label="t('today.addTask')"
           @keydown="onKeydown"
         />
       </div>
@@ -161,7 +164,7 @@ onMounted(loadTasks)
     <!-- Pending -->
     <section v-if="pending.length > 0" class="section">
       <div class="section-label">
-        <span class="badge badge-pending">待办 <span class="badge-count">{{ pending.length }}</span></span>
+        <span class="badge badge-pending">{{ t('today.pending') }} <span class="badge-count">{{ pending.length }}</span></span>
       </div>
       <div class="task-list">
         <div
@@ -170,7 +173,7 @@ onMounted(loadTasks)
           class="task-item"
           :class="{ 'task-removing': removingId === task.id }"
         >
-          <button class="ring pending-ring" :aria-label="`标记 '${task.title}' 为进行中`" @click="cycleStatus(task)">
+          <button class="ring pending-ring" :aria-label="t('today.markInProgress', { title: task.title })" @click="cycleStatus(task)">
             <span class="ring-inner"></span>
           </button>
           <div class="task-content" @click="startEdit(task)">
@@ -188,7 +191,7 @@ onMounted(loadTasks)
               <span class="task-text">{{ task.title }}</span>
             </template>
           </div>
-          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id!)">
+          <button class="remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click="remove(task.id!)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -203,7 +206,7 @@ onMounted(loadTasks)
     <!-- In progress -->
     <section v-if="inProgress.length > 0" class="section">
       <div class="section-label">
-        <span class="badge badge-active">进行中 <span class="badge-count">{{ inProgress.length }}</span></span>
+        <span class="badge badge-active">{{ t('today.inProgress') }} <span class="badge-count">{{ inProgress.length }}</span></span>
       </div>
       <div class="task-list">
         <div
@@ -212,7 +215,7 @@ onMounted(loadTasks)
           class="task-item active-item"
           :class="{ 'task-removing': removingId === task.id }"
         >
-          <button class="ring active-ring" :aria-label="`标记 '${task.title}' 为已完成`" @click="cycleStatus(task)">
+          <button class="ring active-ring" :aria-label="t('today.markCompleted', { title: task.title })" @click="cycleStatus(task)">
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 11.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"/>
             </svg>
@@ -232,7 +235,7 @@ onMounted(loadTasks)
               <span class="task-text active-text">{{ task.title }}</span>
             </template>
           </div>
-          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id!)">
+          <button class="remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click="remove(task.id!)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -247,7 +250,7 @@ onMounted(loadTasks)
     <!-- Done -->
     <section v-if="done.length > 0" class="section">
       <div class="section-label">
-        <span class="badge badge-done">已完成 <span class="badge-count">{{ done.length }}</span></span>
+        <span class="badge badge-done">{{ t('today.completed') }} <span class="badge-count">{{ done.length }}</span></span>
       </div>
       <div class="task-list">
         <div
@@ -256,7 +259,7 @@ onMounted(loadTasks)
           class="task-item done-item"
           :class="{ 'task-removing': removingId === task.id }"
         >
-          <button class="ring done-ring" :aria-label="`标记 '${task.title}' 为待办`" @click="cycleStatus(task)">
+          <button class="ring done-ring" :aria-label="t('today.markPending', { title: task.title })" @click="cycleStatus(task)">
             <svg class="check-svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
             </svg>
@@ -264,7 +267,7 @@ onMounted(loadTasks)
           <span class="task-text strike">
             <span class="strike-inner">{{ task.title }}</span>
           </span>
-          <button class="remove-btn" :aria-label="`删除任务 '${task.title}'`" @click="remove(task.id!)">
+          <button class="remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click="remove(task.id!)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -293,8 +296,8 @@ onMounted(loadTasks)
           </div>
         </div>
       </div>
-      <p class="empty-title">今天还没有记录</p>
-      <p class="empty-sub">在上方输入开始写...</p>
+      <p class="empty-title">{{ t('today.emptyTitle') }}</p>
+      <p class="empty-sub">{{ t('today.emptyHint') }}</p>
     </div>
   </div>
 </template>

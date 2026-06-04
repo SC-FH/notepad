@@ -4,14 +4,16 @@ import db, {
   TASK_STATUS,
   TASK_PRIORITY,
   TASK_CATEGORY,
-  STATUS_LABELS,
-  PRIORITY_LABELS,
-  CATEGORY_LABELS,
   type Task,
   type TaskStatus,
   type TaskCategory,
 } from '../db'
 import TaskForm from '../components/TaskForm.vue'
+import { useLocale } from '../composables/useLocale'
+import { useLabels } from '../composables/useLabels'
+
+const { t } = useLocale()
+const { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS } = useLabels()
 
 const tasks = ref<Task[]>([])
 const showForm = ref(false)
@@ -104,15 +106,15 @@ const updateStatus = async (task: Task, status: TaskStatus): Promise<void> => {
   await loadTasks()
 }
 
-const statusOptions: { value: string; label: string }[] = [
-  { value: 'all', label: '全部状态' },
-  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
-]
+const statusOptions = computed(() => [
+  { value: 'all', label: t('tasks.allStatuses') },
+  ...Object.entries(STATUS_LABELS.value).map(([value, label]) => ({ value, label })),
+])
 
-const categoryOptions: { value: string; label: string }[] = [
-  { value: 'all', label: '全部分类' },
-  ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label })),
-]
+const categoryOptions = computed(() => [
+  { value: 'all', label: t('tasks.allCategories') },
+  ...Object.entries(CATEGORY_LABELS.value).map(([value, label]) => ({ value, label })),
+])
 
 onMounted(loadTasks)
 </script>
@@ -122,12 +124,12 @@ onMounted(loadTasks)
     <div class="page-header">
       <div class="header-row">
         <div>
-          <h2>任务</h2>
-          <p>{{ taskCount }} 项任务</p>
+          <h2>{{ t('tasks.title') }}</h2>
+          <p>{{ t('tasks.taskCount', { count: taskCount }) }}</p>
         </div>
         <button class="btn btn-primary" @click="openAddForm">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-          新建
+          {{ t('tasks.create') }}
         </button>
       </div>
     </div>
@@ -142,7 +144,7 @@ onMounted(loadTasks)
           v-model="searchQuery"
           type="text"
           class="form-input"
-          placeholder="搜索..."
+          :placeholder="t('tasks.search')"
         />
       </div>
       <select v-model="filterStatus" class="form-select toolbar-select">
@@ -191,7 +193,7 @@ onMounted(loadTasks)
               {{ label }}
             </option>
           </select>
-          <button class="btn btn-icon btn-danger-ghost" @click.stop="deleteTask(task.id!)" title="删除">
+          <button class="btn btn-icon btn-danger-ghost" @click.stop="deleteTask(task.id!)" :title="t('tasks.deleteTitle')">
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
           </button>
         </div>
@@ -203,9 +205,9 @@ onMounted(loadTasks)
       <div class="empty-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       </div>
-      <p>{{ searchQuery ? '没有找到匹配的任务' : '暂无任务' }}</p>
+      <p>{{ searchQuery ? t('tasks.noMatch') : t('tasks.noTasks') }}</p>
       <button v-if="!searchQuery" class="btn btn-primary" style="margin-top: 12px" @click="openAddForm">
-        创建第一个任务
+        {{ t('tasks.createFirst') }}
       </button>
     </div>
 

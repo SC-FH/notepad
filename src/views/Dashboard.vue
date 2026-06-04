@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import db, { TASK_STATUS, PRIORITY_LABELS, STATUS_LABELS, type Task } from '../db'
+import db, { TASK_STATUS, type Task } from '../db'
+import { useLocale } from '../composables/useLocale'
+import { useLabels } from '../composables/useLabels'
+
+const { t, currentLocale } = useLocale()
+const { PRIORITY_LABELS } = useLabels()
 
 const router = useRouter()
 const tasks = ref<Task[]>([])
@@ -57,8 +62,8 @@ onMounted(loadTasks)
 <template>
   <div>
     <div class="page-header">
-      <h2>概览</h2>
-      <p>{{ new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }) }}</p>
+      <h2>{{ t('dashboard.title') }}</h2>
+      <p>{{ new Date().toLocaleDateString(currentLocale, { month: 'long', day: 'numeric', weekday: 'long' }) }}</p>
     </div>
 
     <!-- Stats -->
@@ -68,28 +73,28 @@ onMounted(loadTasks)
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
         </div>
         <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-label">全部任务</div>
+        <div class="stat-label">{{ t('dashboard.allTasks') }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background: var(--green-subtle); color: var(--green)">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
         </div>
         <div class="stat-value">{{ stats.completed }}</div>
-        <div class="stat-label">已完成</div>
+        <div class="stat-label">{{ t('dashboard.completed') }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background: var(--blue-subtle); color: var(--blue)">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
         </div>
         <div class="stat-value">{{ stats.inProgress }}</div>
-        <div class="stat-label">进行中</div>
+        <div class="stat-label">{{ t('dashboard.inProgress') }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background: var(--amber-subtle); color: var(--amber)">
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6c0 1.887.87 3.568 2.225 4.662C7.593 13.82 8 14.548 8 15.308V17a1 1 0 001 1h2a1 1 0 001-1v-1.692c0-.76.407-1.488 1.775-2.646A6 6 0 0010 2z"/></svg>
         </div>
         <div class="stat-value">{{ stats.pending }}</div>
-        <div class="stat-label">待办</div>
+        <div class="stat-label">{{ t('dashboard.pending') }}</div>
       </div>
     </div>
 
@@ -97,7 +102,7 @@ onMounted(loadTasks)
       <!-- Today progress -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">今日进度</span>
+          <span class="card-title">{{ t('dashboard.todayProgress') }}</span>
           <span class="today-rate">{{ todayRate }}%</span>
         </div>
         <div class="progress-bar">
@@ -108,30 +113,30 @@ onMounted(loadTasks)
             <span :class="['dot', task.status]"></span>
             <span class="today-title">{{ task.title }}</span>
           </div>
-          <p v-if="todayTasks.length > 5" class="more-hint">还有 {{ todayTasks.length - 5 }} 项...</p>
+          <p v-if="todayTasks.length > 5" class="more-hint">{{ t('dashboard.moreItems', { count: todayTasks.length - 5 }) }}</p>
         </div>
-        <p v-else class="empty-text">今天还没有创建任务</p>
+        <p v-else class="empty-text">{{ t('dashboard.noTodayTasks') }}</p>
       </div>
 
       <!-- Overall rate -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">总完成率</span>
+          <span class="card-title">{{ t('dashboard.overallRate') }}</span>
         </div>
         <div class="rate-display">
           <div class="rate-num">{{ stats.rate }}<span class="rate-unit">%</span></div>
           <div class="progress-bar" style="margin-top: 12px">
             <div class="progress-fill green" :style="progressBarStyle"></div>
           </div>
-          <p class="rate-desc">{{ stats.completed }} / {{ stats.total }} 项已完成</p>
+          <p class="rate-desc">{{ t('dashboard.itemsCompleted', { done: stats.completed, total: stats.total }) }}</p>
         </div>
       </div>
 
       <!-- Recent -->
       <div class="card recent-card">
         <div class="card-header">
-          <span class="card-title">最近任务</span>
-          <button class="btn btn-ghost btn-sm" @click="router.push('/tasks')">查看全部</button>
+          <span class="card-title">{{ t('dashboard.recentTasks') }}</span>
+          <button class="btn btn-ghost btn-sm" @click="router.push('/tasks')">{{ t('dashboard.viewAll') }}</button>
         </div>
         <div v-if="recentTasks.length" class="task-list">
           <div
@@ -150,7 +155,7 @@ onMounted(loadTasks)
             </div>
           </div>
         </div>
-        <div v-else class="empty-text">暂无任务</div>
+        <div v-else class="empty-text">{{ t('dashboard.noTasks') }}</div>
       </div>
     </div>
   </div>

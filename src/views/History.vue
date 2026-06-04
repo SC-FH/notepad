@@ -2,10 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import db, { TASK_STATUS, type Task } from '../db'
 import PdfExportModal from '../components/PdfExportModal.vue'
+import { useLocale } from '../composables/useLocale'
+
+const { t, currentLocale } = useLocale()
 
 export interface DayGroup {
   date: string
   label: string
+  isToday: boolean
+  isYesterday: boolean
   tasks: Task[]
   total: number
   done: number
@@ -41,24 +46,38 @@ function groupLabel(isoKey: string): string | null {
   const d = new Date(isoKey + 'T00:00:00')
   const diff = diffDays(today, d)
   if (diff <= 0) return null                  // today itself — no group header
-  if (diff >= 1 && diff <= today.getDay()) return '本周'
-  if (diff >= 1 && diff <= today.getDay() + 7) return '上周'
-  return '更早'
+  if (diff >= 1 && diff <= today.getDay()) return t('history.thisWeek')
+  if (diff >= 1 && diff <= today.getDay() + 7) return t('history.lastWeek')
+  return t('history.earlier')
 }
 
 /* ---- computed ---- */
 
 const days = computed(() => {
+  // Depend on locale so labels recompute when language changes
+  void currentLocale.value
   const map: Record<string, DayGroup> = {}
-  allTasks.value.forEach(t => {
-    const d = startOfDay(new Date(t.createdAt))
+  const todayDate = startOfDay(new Date())
+  const yesterdayDate = new Date(todayDate)
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+
+  allTasks.value.forEach(task => {
+    const d = startOfDay(new Date(task.createdAt))
     const key = d.toISOString().slice(0, 10)
     if (!map[key]) {
-      map[key] = { date: key, label: formatDate(d), tasks: [], total: 0, done: 0 }
+      map[key] = {
+        date: key,
+        label: formatDate(d),
+        isToday: d.getTime() === todayDate.getTime(),
+        isYesterday: d.getTime() === yesterdayDate.getTime(),
+        tasks: [],
+        total: 0,
+        done: 0,
+      }
     }
-    map[key].tasks.push(t)
+    map[key].tasks.push(task)
     map[key].total++
-    if (t.status === TASK_STATUS.COMPLETED) map[key].done++
+    if (task.status === TASK_STATUS.COMPLETED) map[key].done++
   })
   return Object.values(map)
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -84,10 +103,9 @@ function formatDate(d: Date): string {
   const today = startOfDay(new Date())
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (d.getTime() === today.getTime()) return '今天'
-  if (d.getTime() === yesterday.getTime()) return '昨天'
-  const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${weekday}`
+  if (d.getTime() === today.getTime()) return t('history.today')
+  if (d.getTime() === yesterday.getTime()) return t('history.yesterday')
+  return d.toLocaleDateString(currentLocale.value, { month: 'long', day: 'numeric', weekday: 'short' })
 }
 
 const toggleExpand = (date: string): void => {
@@ -113,8 +131,8 @@ onMounted(loadTasks)
         </svg>
       </div>
       <div>
-        <h2 class="page-title">历史记录</h2>
-        <p class="page-sub">查看往日任务</p>
+        <h2 class="page-title">{{ t('history.title') }}</h2>
+        <p class="page-sub">{{ t('history.subtitle') }}</p>
       </div>
     </div>
 
@@ -128,8 +146,8 @@ onMounted(loadTasks)
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
       </div>
-      <p class="empty-title">还没有任何记录</p>
-      <p class="empty-hint">完成任务后，这里会展示你的历史进度</p>
+      <p class="empty-title">{{ t('history.emptyTitle') }}</p>
+      <p class="empty-hint">{{ t('history.emptyHint') }}</p>
     </div>
 
     <!-- ─── Day list ─────────────────────────────────────── -->
@@ -149,7 +167,7 @@ onMounted(loadTasks)
           :class="{ expanded: expandedDate === item.date }"
           role="button"
           :aria-expanded="expandedDate === item.date"
-          :aria-label="`${item.label} — ${item.done}/${item.total} 任务完成`"
+          :aria-label="`${item.label} — ${t('history.taskCompletion', { done: item.done, total: item.total })}`"
           tabindex="0"
           @click="toggleExpand(item.date)"
           @keydown.enter="toggleExpand(item.date)"
@@ -158,8 +176,8 @@ onMounted(loadTasks)
           <div class="day-row">
             <div class="day-left">
               <span class="day-name">{{ item.label }}</span>
-              <span v-if="item.label === '今天'" class="badge badge--today">今日</span>
-              <span v-else-if="item.label === '昨天'" class="badge badge--yesterday">昨日</span>
+              <span v-if="item.isToday" class="badge badge--today">{{ t('history.todayBadge') }}</span>
+              <span v-else-if="item.isYesterday" class="badge badge--yesterday">{{ t('history.yesterdayBadge') }}</span>
               <span class="day-date">{{ item.date }}</span>
             </div>
             <div class="day-right">
@@ -173,8 +191,8 @@ onMounted(loadTasks)
               <button
                 class="export-btn"
                 @click.stop="exportDay = item"
-                aria-label="导出 PDF"
-                title="导出 PDF"
+                :aria-label="t('history.exportPdf')"
+                :title="t('history.exportPdf')"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </button>

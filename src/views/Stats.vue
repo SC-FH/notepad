@@ -6,8 +6,9 @@ import {
   CategoryScale, LinearScale, LineElement, PointElement,
   ArcElement, Tooltip, Legend, Filler,
 } from 'chart.js'
-import db, { TASK_STATUS, STATUS_LABELS, type Task } from '../db'
+import db, { TASK_STATUS, type Task } from '../db'
 import { useTheme } from '../composables/useTheme'
+import { useLocale } from '../composables/useLocale'
 
 ChartJS.register(
   CategoryScale, LinearScale, LineElement, PointElement,
@@ -17,8 +18,9 @@ ChartJS.register(
 const tasks = ref<Task[]>([])
 const loadTasks = async (): Promise<void> => { tasks.value = await db.tasks.toArray() }
 
-// Track theme changes so chart colors recompute
+// Track theme and locale changes so chart colors/labels recompute
 const { currentScheme } = useTheme()
+const { t, currentLocale } = useLocale()
 
 // Resolve CSS custom properties to computed color values for Chart.js
 function cssVar(name: string): string {
@@ -34,8 +36,9 @@ const stats = computed(() => {
 })
 
 const trend = computed(() => {
-  // Read currentScheme to trigger recomputation on theme change
+  // Read currentScheme and locale to trigger recomputation on change
   void currentScheme.value
+  void currentLocale.value
   const labels = [], created = [], completed = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0, 0, 0, 0)
@@ -50,7 +53,7 @@ const trend = computed(() => {
     labels,
     datasets: [
       {
-        label: '新建',
+        label: t('stats.trendCreated'),
         data: created,
         borderColor: blue,
         backgroundColor: blue + '14',
@@ -62,7 +65,7 @@ const trend = computed(() => {
         borderWidth: 2,
       },
       {
-        label: '完成',
+        label: t('stats.trendCompleted'),
         data: completed,
         borderColor: green,
         backgroundColor: green + '14',
@@ -109,10 +112,11 @@ const trendOpts = computed(() => {
 
 const statusData = computed(() => {
   void currentScheme.value
+  void currentLocale.value
   const counts = { pending: 0, in_progress: 0, completed: 0, cancelled: 0 }
   tasks.value.forEach(t => { counts[t.status]++ })
   return {
-    labels: ['待办', '进行中', '已完成', '已取消'],
+    labels: [t('db.status.pending'), t('db.status.in_progress'), t('db.status.completed'), t('db.status.cancelled')],
     datasets: [{
       data: Object.values(counts),
       backgroundColor: [
@@ -174,13 +178,13 @@ onMounted(loadTasks)
         </svg>
       </div>
       <div>
-        <h2 class="page-title">统计</h2>
-        <p class="page-sub">查看任务完成情况</p>
+        <h2 class="page-title">{{ t('stats.title') }}</h2>
+        <p class="page-sub">{{ t('stats.subtitle') }}</p>
       </div>
     </div>
 
     <!-- Summary -->
-    <div class="summary-grid" role="list" aria-label="任务统计概览">
+    <div class="summary-grid" role="list" :aria-label="t('stats.ariaOverview')">
       <div class="summary-card summary-card--amber" role="listitem">
         <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -188,7 +192,7 @@ onMounted(loadTasks)
           <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
         <div class="summary-num">{{ stats.total }}</div>
-        <div class="summary-label">总任务</div>
+        <div class="summary-label">{{ t('stats.totalTasks') }}</div>
       </div>
       <div class="summary-card summary-card--blue" role="listitem">
         <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -196,7 +200,7 @@ onMounted(loadTasks)
           <polyline points="12 6 12 12 16 14" />
         </svg>
         <div class="summary-num">{{ stats.active }}</div>
-        <div class="summary-label">进行中</div>
+        <div class="summary-label">{{ t('stats.inProgress') }}</div>
       </div>
       <div class="summary-card summary-card--green" role="listitem">
         <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -204,21 +208,21 @@ onMounted(loadTasks)
           <polyline points="22 4 12 14.01 9 11.01" />
         </svg>
         <div class="summary-num">{{ stats.done }}</div>
-        <div class="summary-label">已完成</div>
+        <div class="summary-label">{{ t('stats.completed') }}</div>
       </div>
       <div class="summary-card summary-card--purple" role="listitem">
         <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
         <div class="summary-num">{{ streak }}</div>
-        <div class="summary-label">连续天数</div>
+        <div class="summary-label">{{ t('stats.streak') }}</div>
       </div>
     </div>
 
     <!-- Completion Rate -->
     <div class="rate-banner">
-      <div class="rate-label">完成率</div>
-      <div class="rate-value" aria-label="完成率 {{ stats.rate }}%">
+      <div class="rate-label">{{ t('stats.completionRate') }}</div>
+      <div class="rate-value" :aria-label="`${t('stats.completionRate')} ${stats.rate}%`">
         {{ stats.rate }}<span class="rate-pct">%</span>
       </div>
     </div>
@@ -230,7 +234,7 @@ onMounted(loadTasks)
           <svg class="chart-head-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          <span class="chart-title">近 7 天趋势</span>
+          <span class="chart-title">{{ t('stats.trend7d') }}</span>
         </div>
         <div class="chart-body">
           <Line :data="trend" :options="trendOpts" />
@@ -242,7 +246,7 @@ onMounted(loadTasks)
             <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
             <path d="M22 12A10 10 0 0 0 12 2v10z" />
           </svg>
-          <span class="chart-title">状态分布</span>
+          <span class="chart-title">{{ t('stats.statusDistribution') }}</span>
         </div>
         <div class="donut-wrap">
           <Doughnut :data="statusData" :options="doughnutOpts" />
