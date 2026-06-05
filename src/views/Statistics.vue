@@ -297,6 +297,9 @@ onMounted(loadTasks)
 </template>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
 .chart-card {
   min-height: 320px;
 
@@ -310,11 +313,11 @@ onMounted(loadTasks)
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 
-  @media (max-width: 1024px) {
+  @include tablet {
     grid-template-columns: 1fr 1fr;
   }
 
-  @media (max-width: 768px) {
+  @include mobile {
     grid-template-columns: 1fr;
   }
 }

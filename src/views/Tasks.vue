@@ -230,6 +230,9 @@ onMounted(loadTasks)
 </template>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
 .header-row {
   display: flex;
   align-items: center;
@@ -245,11 +248,20 @@ onMounted(loadTasks)
   .search-box {
     flex: 1;
     min-width: 160px;
+
+    @include mobile {
+      min-width: 100%;
+    }
   }
 
   .toolbar-select {
     width: auto;
     min-width: 100px;
+
+    @include mobile {
+      flex: 1;
+      min-width: 0;
+    }
   }
 }
 
@@ -257,6 +269,7 @@ onMounted(loadTasks)
   cursor: pointer;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .task-actions {
@@ -265,8 +278,14 @@ onMounted(loadTasks)
   align-items: center;
   opacity: 0;
   transition: opacity 0.15s;
+  flex-shrink: 0;
 
   .task-item:hover & { opacity: 1; }
+
+  @include mobile {
+    opacity: 0.6;
+    .task-item:hover & { opacity: 1; }
+  }
 }
 
 .status-select {
@@ -285,6 +304,12 @@ onMounted(loadTasks)
     background: var(--bg-d);
     border-color: var(--border-d);
     color: var(--text-d);
+  }
+
+  @include mobile {
+    font-size: 14px;
+    min-width: 64px;
+    padding: 4px 6px;
   }
 }
 

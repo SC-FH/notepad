@@ -285,6 +285,10 @@ onMounted(loadTasks)
   font-weight: 700;
   color: var(--ink);
   line-height: 1.2;
+
+  @include mobile {
+    font-size: 22px;
+  }
 }
 
 .page-sub {
@@ -300,7 +304,9 @@ onMounted(loadTasks)
   gap: $space-3;
   margin-bottom: $space-5;
 
-  @media (max-width: $bp-mobile) { grid-template-columns: repeat(2, 1fr); }
+  @include mobile {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .summary-card {
@@ -342,6 +348,10 @@ onMounted(loadTasks)
   font-weight: 700;
   color: var(--ink);
   line-height: 1;
+
+  @include mobile {
+    font-size: 28px;
+  }
 }
 
 .summary-card--amber  .summary-num { color: var(--amber); }
@@ -367,6 +377,10 @@ onMounted(loadTasks)
   background: var(--paper);
   border: 1px solid var(--paper-line);
   box-shadow: $shadow-sm;
+
+  @include mobile {
+    padding: $space-4 $space-4;
+  }
 }
 
 .rate-label {
@@ -382,6 +396,10 @@ onMounted(loadTasks)
   font-weight: 700;
   color: var(--accent);
   line-height: 1;
+
+  @include mobile {
+    font-size: 40px;
+  }
 }
 
 .rate-pct {

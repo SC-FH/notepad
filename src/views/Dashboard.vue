@@ -162,12 +162,15 @@ onMounted(loadTasks)
 </template>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
 .dash-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 
-  @media (max-width: 768px) { grid-template-columns: 1fr; }
+  @include mobile { grid-template-columns: 1fr; }
 }
 
 .today-rate {

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import db, { TASK_STATUS, type Task, type TaskStatus } from '../db'
 import { useLocale } from '../composables/useLocale'
+import TaskForm from '../components/TaskForm.vue'
 
 const { t, currentLocale } = useLocale()
 
@@ -12,6 +13,8 @@ const editingId = ref<number | null>(null)
 const editText = ref('')
 const editRef = ref<HTMLInputElement | null>(null)
 const removingId = ref<number | null>(null)
+const showForm = ref(false)
+const editingTask = ref<Task | null>(null)
 
 const today = new Date()
 today.setHours(0, 0, 0, 0)
@@ -43,6 +46,12 @@ const loadTasks = async (): Promise<void> => {
         c.setHours(0, 0, 0, 0)
         return c.getTime() === today.getTime()
       }
+      // 今天取消的往日任务也显示
+      if (t.status === TASK_STATUS.CANCELLED && t.completedAt) {
+        const c = new Date(t.completedAt)
+        c.setHours(0, 0, 0, 0)
+        return c.getTime() === today.getTime()
+      }
       return false
     })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -51,6 +60,7 @@ const loadTasks = async (): Promise<void> => {
 const pending = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.PENDING))
 const inProgress = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.IN_PROGRESS))
 const done = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.COMPLETED))
+const cancelled = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.CANCELLED))
 const progress = computed(() => {
   if (tasks.value.length === 0) return 0
   return Math.round((done.value.length / tasks.value.length) * 100)
@@ -90,6 +100,11 @@ const cycleStatus = async (task: Task): Promise<void> => {
   await loadTasks()
 }
 
+const restoreTask = async (task: Task): Promise<void> => {
+  await db.tasks.update(task.id!, { status: TASK_STATUS.PENDING, completedAt: null })
+  await loadTasks()
+}
+
 const remove = async (id: number | undefined): Promise<void> => {
   if (id === undefined) return
   removingId.value = id
@@ -116,6 +131,32 @@ const saveEdit = async (task: Task): Promise<void> => {
 }
 
 const cancelEdit = () => { editingId.value = null }
+
+const cancelTask = async (task: Task): Promise<void> => {
+  await db.tasks.update(task.id!, {
+    status: TASK_STATUS.CANCELLED,
+    completedAt: new Date().toISOString(),
+  })
+  await loadTasks()
+}
+
+const openEditForm = (task: Task): void => {
+  editingTask.value = { ...task }
+  showForm.value = true
+}
+
+const closeForm = (): void => {
+  showForm.value = false
+  editingTask.value = null
+}
+
+const handleSave = async (taskData: Record<string, any>): Promise<void> => {
+  if (editingTask.value) {
+    await db.tasks.update(editingTask.value.id!, taskData)
+  }
+  await loadTasks()
+  closeForm()
+}
 
 const onKeydown = (e: KeyboardEvent): void => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -201,8 +242,14 @@ onMounted(loadTasks)
               <span class="task-text">{{ task.title }}</span>
             </template>
           </div>
-          <button class="remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click="remove(task.id!)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="action-btn cancel-btn" :aria-label="t('today.markCancelled', { title: task.title })" @click.stop="cancelTask(task)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </button>
+          <button class="action-btn remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click.stop="remove(task.id!)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               <line x1="10" y1="11" x2="10" y2="17" />
@@ -245,8 +292,14 @@ onMounted(loadTasks)
               <span class="task-text active-text">{{ task.title }}</span>
             </template>
           </div>
-          <button class="remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click="remove(task.id!)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="action-btn cancel-btn" :aria-label="t('today.markCancelled', { title: task.title })" @click.stop="cancelTask(task)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </button>
+          <button class="action-btn remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click.stop="remove(task.id!)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               <line x1="10" y1="11" x2="10" y2="17" />
@@ -277,8 +330,42 @@ onMounted(loadTasks)
           <span class="task-text strike">
             <span class="strike-inner">{{ task.title }}</span>
           </span>
-          <button class="remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click="remove(task.id!)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="action-btn remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click.stop="remove(task.id!)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cancelled -->
+    <section v-if="cancelled.length > 0" class="section">
+      <div class="section-label">
+        <span class="badge badge-cancelled">{{ t('db.status.cancelled') }} <span class="badge-count">{{ cancelled.length }}</span></span>
+      </div>
+      <div class="task-list">
+        <div
+          v-for="task in cancelled"
+          :key="task.id"
+          class="task-item cancelled-item"
+          :class="{ 'task-removing': removingId === task.id }"
+        >
+          <button class="ring cancelled-ring" :aria-label="t('today.markPending', { title: task.title })" @click="restoreTask(task)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+              <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
+            </svg>
+          </button>
+          <span class="task-text cancelled-text">{{ task.title }}</span>
+          <button class="action-btn remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click.stop="remove(task.id!)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               <line x1="10" y1="11" x2="10" y2="17" />
@@ -309,11 +396,28 @@ onMounted(loadTasks)
       <p class="empty-title">{{ t('today.emptyTitle') }}</p>
       <p class="empty-sub">{{ t('today.emptyHint') }}</p>
     </div>
+
+    <!-- Edit Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
+          <transition name="modal">
+            <TaskForm
+              v-if="showForm"
+              :task="editingTask"
+              @save="handleSave"
+              @cancel="closeForm"
+            />
+          </transition>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
+@use '../styles/mixins' as *;
 
 // ── CSS Custom Properties (on component root, not :root) ──
 .notepad {
@@ -361,6 +465,10 @@ onMounted(loadTasks)
   color: var(--ink);
   line-height: 1;
   letter-spacing: -1px;
+
+  @include mobile {
+    font-size: 36px;
+  }
 }
 
 .date-meta {
@@ -368,6 +476,10 @@ onMounted(loadTasks)
   font-size: var(--today-date-meta-size);
   color: var(--ink-3);
   font-weight: 500;
+
+  @include mobile {
+    font-size: 13px;
+  }
 }
 
 .date-count {
@@ -560,6 +672,10 @@ onMounted(loadTasks)
     color: var(--ink-3);
     font-style: italic;
   }
+
+  @include mobile {
+    font-size: 16px; // prevent iOS zoom on focus
+  }
 }
 
 // ── Sections ──────────────────────────────────────────
@@ -584,6 +700,11 @@ onMounted(loadTasks)
   padding: 4px 12px;
   border-radius: $radius-full;
   font-family: $font-ui;
+
+  @include mobile {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
 }
 
 .badge-count {
@@ -596,6 +717,12 @@ onMounted(loadTasks)
   background: rgba(0, 0, 0, 0.08);
   font-size: 10px;
   padding: 0 5px;
+
+  @include mobile {
+    font-size: 11px;
+    min-width: 20px;
+    height: 20px;
+  }
 }
 
 .badge-pending {
@@ -613,6 +740,12 @@ onMounted(loadTasks)
   color: var(--green);
   background: var(--green-subtle);
   .badge-count { background: var(--green-subtle); }
+}
+
+.badge-cancelled {
+  color: var(--red);
+  background: var(--red-subtle);
+  .badge-count { background: var(--red-subtle); }
 }
 
 .task-list {
@@ -635,7 +768,6 @@ onMounted(loadTasks)
 
   &:hover {
     background: var(--today-card-hover-bg);
-    .remove-btn { opacity: 1; }
   }
 }
 
@@ -783,12 +915,14 @@ onMounted(loadTasks)
   flex: 1;
   min-width: 0;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .task-text {
   font-size: 15px;
   color: var(--ink);
   line-height: 1.5;
+  @include text-ellipsis;
 
   &.active-text {
     font-weight: 600;
@@ -839,10 +973,14 @@ onMounted(loadTasks)
   background: transparent;
   border-bottom: 1.5px solid var(--accent);
   padding: 2px 0;
+
+  @include mobile {
+    font-size: 16px; // prevent iOS zoom
+  }
 }
 
-// ── Remove button (trash icon) ────────────────────────
-.remove-btn {
+// ── Action buttons (edit, cancel, delete) ─────────────
+.action-btn {
   width: 28px;
   height: 28px;
   border: none;
@@ -861,12 +999,82 @@ onMounted(loadTasks)
   svg {
     transition: transform 0.2s ease;
   }
+}
 
+.task-item:hover .action-btn { opacity: 1; }
+
+@include mobile {
+  .task-item .action-btn { opacity: 0.6; }
+  .task-item:hover .action-btn { opacity: 1; }
+}
+
+.edit-btn:hover {
+  color: var(--accent);
+  background: var(--accent-subtle);
+  svg { transform: scale(1.1); }
+}
+
+.cancel-btn:hover {
+  color: var(--orange, #f59e0b);
+  background: rgba(245, 158, 11, 0.1);
+  svg { transform: scale(1.1); }
+}
+
+.remove-btn:hover {
+  color: var(--red);
+  background: var(--red-subtle);
+  svg { transform: scale(1.1); }
+}
+
+.cancelled-item {
+  opacity: 0.45;
+  &:hover { opacity: 0.7; }
+}
+
+.cancelled-text {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-4);
+}
+
+.cancelled-ring {
+  color: var(--ink-4);
+  opacity: 0.6;
   &:hover {
-    color: var(--red);
-    background: var(--red-subtle);
-    svg { transform: scale(1.1); }
+    opacity: 1;
+    color: var(--accent);
   }
+}
+
+// ── Modal ─────────────────────────────────────────────
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  padding: var(--space-4);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
 }
 
 // ── Empty state ───────────────────────────────────────
@@ -891,6 +1099,11 @@ onMounted(loadTasks)
   position: relative;
   box-shadow: var(--shadow-md);
   overflow: hidden;
+
+  @include mobile {
+    width: 64px;
+    height: 80px;
+  }
 }
 
 .notebook-spine {

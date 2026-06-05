@@ -271,6 +271,10 @@ onMounted(loadTasks)
   font-weight: 700;
   color: var(--ink);
   line-height: 1.2;
+
+  @include mobile {
+    font-size: 22px;
+  }
 }
 
 .page-sub {
@@ -297,6 +301,16 @@ onMounted(loadTasks)
   background: var(--cream-dark);
   color: var(--ink-4);
   margin-bottom: var(--space-5);
+
+  @include mobile {
+    width: 80px;
+    height: 80px;
+
+    svg {
+      width: 48px;
+      height: 48px;
+    }
+  }
 }
 
 .empty-title {
@@ -337,6 +351,10 @@ onMounted(loadTasks)
   text-transform: uppercase;
   color: var(--ink-4);
   white-space: nowrap;
+
+  @include mobile {
+    font-size: 12px;
+  }
 }
 
 .group-label-line {
@@ -381,6 +399,10 @@ onMounted(loadTasks)
     border-color: var(--accent-subtle);
     box-shadow: var(--shadow-md);
   }
+
+  @include mobile {
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  }
 }
 
 .day-row {
@@ -395,13 +417,15 @@ onMounted(loadTasks)
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .day-name {
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
-  white-space: nowrap;
+  @include text-ellipsis;
 }
 
 /* ─── Badges ──────────────────────────────────────────── */
@@ -430,6 +454,11 @@ onMounted(loadTasks)
 .day-date {
   font-size: 12px;
   color: var(--ink-3);
+  flex-shrink: 0;
+
+  @include mobile {
+    display: none;
+  }
 }
 
 /* ─── Right side (progress + fraction + arrow) ────────── */
@@ -447,6 +476,11 @@ onMounted(loadTasks)
   background: var(--gray-200);
   border-radius: var(--radius-full);
   overflow: hidden;
+  flex-shrink: 0;
+
+  @include mobile {
+    width: 48px;
+  }
 }
 
 .mini-fill {
@@ -565,6 +599,7 @@ onMounted(loadTasks)
 .task-text {
   font-size: 14px;
   color: var(--ink);
+  @include text-ellipsis;
 
   &.done {
     text-decoration: line-through;

@@ -4,6 +4,19 @@ export default {
     appName: '记事本',
     cancel: '取消',
   },
+  form: {
+    newTask: '新建任务',
+    editTask: '编辑任务',
+    titleLabel: '标题',
+    titlePlaceholder: '输入任务标题',
+    descLabel: '描述',
+    descPlaceholder: '输入任务描述（可选）',
+    priorityLabel: '优先级',
+    categoryLabel: '分类',
+    statusLabel: '状态',
+    dueDateLabel: '截止日期',
+    save: '保存',
+  },
   nav: {
     today: '今天',
     history: '历史',
@@ -22,6 +35,8 @@ export default {
     markInProgress: "标记 '{title}' 为进行中",
     markCompleted: "标记 '{title}' 为已完成",
     markPending: "标记 '{title}' 为待办",
+    markCancelled: "标记 '{title}' 为已取消",
+    cancelTask: '取消',
     deleteTask: "删除任务 '{title}'",
   },
   history: {

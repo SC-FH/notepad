@@ -191,6 +191,10 @@ $content-max: 720px;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.5px;
+
+  @include mobile {
+    display: none;
+  }
 }
 
 // ── Top bar right section ────────────────────────────────
@@ -198,6 +202,13 @@ $content-max: 720px;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
+  overflow-x: auto;
+  @include scrollbar-hide;
+
+  @include mobile {
+    gap: var(--space-2);
+  }
 }
 
 // ── GitHub link ───────────────────────────────────────────
@@ -272,6 +283,11 @@ $content-max: 720px;
 
   &.active {
     color: var(--accent);
+  }
+
+  @include mobile {
+    padding: 5px 8px;
+    font-size: 12px;
   }
 }
 

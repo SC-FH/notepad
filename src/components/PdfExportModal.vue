@@ -268,6 +268,7 @@ const handleExport = async (): Promise<void> => {
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
+@use '../styles/mixins' as *;
 
 .modal-overlay {
   position: fixed;
@@ -278,6 +279,10 @@ const handleExport = async (): Promise<void> => {
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   padding: var(--space-4);
+
+  @include mobile {
+    padding: var(--space-2);
+  }
 }
 
 .modal-panel {
@@ -290,6 +295,11 @@ const handleExport = async (): Promise<void> => {
   border: 1px solid var(--paper-line);
   border-radius: var(--radius-xl);
   overflow: hidden;
+
+  @include mobile {
+    max-height: 95vh;
+    border-radius: var(--radius-lg);
+  }
 }
 
 /* ─── header ─── */
@@ -300,6 +310,10 @@ const handleExport = async (): Promise<void> => {
   padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--paper-line);
   flex-shrink: 0;
+
+  @include mobile {
+    padding: var(--space-3) var(--space-4);
+  }
 }
 
 .modal-title {
@@ -330,6 +344,11 @@ const handleExport = async (): Promise<void> => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+
+  @include mobile {
+    flex-direction: column;
+    overflow-y: auto;
+  }
 }
 
 /* ─── right pane: options ─── */
@@ -339,6 +358,14 @@ const handleExport = async (): Promise<void> => {
   padding: var(--space-5) var(--space-6);
   overflow-y: auto;
   border-left: 1px solid var(--paper-line);
+
+  @include mobile {
+    width: 100%;
+    padding: var(--space-4);
+    border-left: none;
+    border-top: 1px solid var(--paper-line);
+    overflow-y: visible;
+  }
 }
 
 .opt-group {
@@ -474,6 +501,11 @@ const handleExport = async (): Promise<void> => {
   flex-direction: column;
   padding: var(--space-5) var(--space-6);
   overflow: hidden;
+
+  @include mobile {
+    padding: var(--space-4);
+    min-height: 240px;
+  }
 }
 
 .preview-label {
@@ -491,6 +523,10 @@ const handleExport = async (): Promise<void> => {
   border: 1px solid var(--paper-line);
   border-radius: var(--radius-lg);
   background: #f8f8f8;
+
+  @include mobile {
+    min-height: 200px;
+  }
 }
 
 /* ─── footer ─── */
@@ -502,6 +538,10 @@ const handleExport = async (): Promise<void> => {
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--paper-line);
   flex-shrink: 0;
+
+  @include mobile {
+    padding: var(--space-3) var(--space-4);
+  }
 }
 
 .btn {
