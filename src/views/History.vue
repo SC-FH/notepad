@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import db, { TASK_STATUS, type Task } from '../db'
 import PdfExportModal from '../components/PdfExportModal.vue'
+import TaskTags from '../components/TaskTags.vue'
 import { useLocale } from '../composables/useLocale'
 
 const { t, currentLocale } = useLocale()
@@ -211,9 +212,12 @@ onMounted(loadTasks)
                 class="task-item"
               >
                 <span :class="['status-dot', task.status]"></span>
-                <span :class="['task-text', { done: task.status === TASK_STATUS.COMPLETED }]">
-                  {{ task.title }}
-                </span>
+                <div class="task-main">
+                  <span :class="['task-text', { done: task.status === TASK_STATUS.COMPLETED }]">
+                    {{ task.title }}
+                  </span>
+                  <TaskTags :category="task.category" :priority="task.priority" />
+                </div>
               </div>
             </div>
           </div>
@@ -243,6 +247,8 @@ onMounted(loadTasks)
   --h-gap:       var(--space-6);
   --card-pad:    var(--space-5);
   --card-radius: var(--radius-lg);
+  width: min(100%, 880px);
+  margin: 0 auto;
 }
 
 /* ─── Header ──────────────────────────────────────────── */
@@ -259,7 +265,7 @@ onMounted(loadTasks)
   place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   background: var(--accent-subtle);
   color: var(--accent);
   flex-shrink: 0;
@@ -345,7 +351,7 @@ onMounted(loadTasks)
 
 .group-label-text {
   font-family: $font-ui;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -378,26 +384,18 @@ onMounted(loadTasks)
   background: var(--paper);
   border: 1px solid var(--paper-line);
   border-radius: var(--card-radius);
-  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition:
-    transform var(--duration-normal) var(--ease-out),
-    box-shadow var(--duration-normal) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
-  will-change: transform;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-
-  &:active {
-    transform: translateY(0);
+    background: var(--cream);
+    border-color: var(--accent-muted);
   }
 
   &.expanded {
-    border-color: var(--accent-subtle);
-    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
   }
 
   @include mobile {
@@ -410,6 +408,12 @@ onMounted(loadTasks)
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
 }
 
 .day-left {
@@ -419,13 +423,19 @@ onMounted(loadTasks)
   min-width: 0;
   flex: 1;
   overflow: hidden;
+
+  @include mobile {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    overflow: visible;
+  }
 }
 
 .day-name {
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
-  @include text-ellipsis;
+  overflow-wrap: anywhere;
 }
 
 /* ─── Badges ──────────────────────────────────────────── */
@@ -433,7 +443,7 @@ onMounted(loadTasks)
 .badge {
   display: inline-block;
   font-family: $font-ui;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   padding: 3px 8px;
@@ -468,6 +478,11 @@ onMounted(loadTasks)
   align-items: center;
   gap: var(--space-3);
   flex-shrink: 0;
+
+  @include mobile {
+    width: 100%;
+    gap: var(--space-2);
+  }
 }
 
 .mini-track {
@@ -479,7 +494,8 @@ onMounted(loadTasks)
   flex-shrink: 0;
 
   @include mobile {
-    width: 48px;
+    width: auto;
+    flex: 1;
   }
 }
 
@@ -503,9 +519,9 @@ onMounted(loadTasks)
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--ink-4);
   border-radius: var(--radius);
@@ -517,6 +533,7 @@ onMounted(loadTasks)
   &:hover {
     color: var(--accent);
     background: var(--accent-subtle);
+    border-color: var(--accent-muted);
   }
 }
 
@@ -569,7 +586,7 @@ onMounted(loadTasks)
 
 .task-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
@@ -589,6 +606,7 @@ onMounted(loadTasks)
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  margin-top: 9px;
 
   &.pending     { background: var(--ink-4); }
   &.in_progress { background: var(--blue); }
@@ -596,10 +614,28 @@ onMounted(loadTasks)
   &.cancelled   { background: var(--red); }
 }
 
+.task-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
 .task-text {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   font-size: 14px;
   color: var(--ink);
-  @include text-ellipsis;
+  overflow-wrap: anywhere;
 
   &.done {
     text-decoration: line-through;

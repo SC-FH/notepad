@@ -4,10 +4,6 @@
 //  Responsive Breakpoints
 // ═══════════════════════════════════════════════════════
 
-@mixin dark {
-  @media (prefers-color-scheme: dark) { @content; }
-}
-
 @mixin mobile {
   @media (max-width: #{$bp-mobile}) { @content; }
 }
@@ -76,7 +72,6 @@
   transition:
     transform var(--duration-normal) var(--ease-out),
     box-shadow var(--duration-normal) var(--ease-out);
-  will-change: transform;
 
   &:hover {
     transform: translateY($distance);
@@ -90,7 +85,6 @@
 
 @mixin hover-scale($scale: 1.02) {
   transition: transform var(--duration-normal) var(--ease-out);
-  will-change: transform;
 
   &:hover {
     transform: scale($scale);

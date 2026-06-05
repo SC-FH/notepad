@@ -8,7 +8,6 @@
 
 - **今日视图** — 查看和管理今日任务
 - **任务管理** — 创建、编辑、完成任务
-- **仪表盘** — 总览任务状态和进度
 - **数据统计** — 通过图表可视化任务完成情况
 - **历史记录** — 查看过往任务完成记录
 - **PDF 导出** — 将任务数据导出为 PDF 文件
@@ -70,9 +69,14 @@ npm run type-check
 ```
 src/
 ├── components/      # 公共组件
+│   ├── LanguageSwitcher.vue
+│   ├── PdfExportModal.vue
+│   ├── TaskForm.vue
+│   ├── TaskTags.vue
 │   ├── ThemePicker.vue
-│   └── PdfExportModal.vue
 ├── composables/     # 组合式函数
+│   ├── useLabels.ts
+│   ├── useLocale.ts
 │   └── useTheme.ts
 ├── db/              # 数据库 (Dexie)
 │   └── index.ts
@@ -83,15 +87,10 @@ src/
 │   ├── _variables.scss
 │   ├── _mixins.scss
 │   ├── _base.scss
-│   ├── _layout.scss
-│   ├── _components.scss
 │   └── _animations.scss
 ├── views/           # 页面视图
 │   ├── Today.vue
-│   ├── Tasks.vue
-│   ├── Dashboard.vue
 │   ├── Stats.vue
-│   ├── Statistics.vue
 │   └── History.vue
 ├── App.vue
 └── main.ts

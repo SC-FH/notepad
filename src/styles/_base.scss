@@ -93,9 +93,9 @@ html {
 body {
   min-height: 100vh;
   background: var(--cream);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.7;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.6;
   color: var(--ink);
   transition: background-color var(--duration-slow) var(--ease-out),
               color var(--duration-slow) var(--ease-out);

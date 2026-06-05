@@ -19,27 +19,32 @@ const { isChinese, toggleLocale } = useLocale()
 @use '../styles/variables' as *;
 
 .lang-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: var(--cream);
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--paper-line);
+  background: var(--paper);
   border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--ink-3);
-  transition: all 0.2s ease;
+  color: var(--ink-2);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
   padding: 0;
   flex-shrink: 0;
+  touch-action: manipulation;
 
   &:hover {
-    background: var(--cream-dark);
+    border-color: var(--accent-muted);
+    background: var(--cream);
     color: var(--accent);
   }
 
   &:active {
-    transform: scale(0.95);
+    background: var(--cream-dark);
   }
 }
 
@@ -50,5 +55,12 @@ const { isChinese, toggleLocale } = useLocale()
   color: inherit;
   line-height: 1;
   user-select: none;
+}
+
+@media (max-width: 420px) {
+  .lang-btn {
+    width: 36px;
+    height: 36px;
+  }
 }
 </style>

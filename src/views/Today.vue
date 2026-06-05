@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
-import db, { TASK_STATUS, type Task, type TaskStatus } from '../db'
+import { ref, computed, onMounted, onUnmounted, nextTick, type ComponentPublicInstance } from 'vue'
+import db, {
+  TASK_STATUS,
+  TASK_CATEGORY,
+  type Task,
+  type TaskStatus,
+  type TaskCategory,
+  type TaskFormData,
+} from '../db'
 import { useLocale } from '../composables/useLocale'
+import { useLabels } from '../composables/useLabels'
 import TaskForm from '../components/TaskForm.vue'
+import TaskTags from '../components/TaskTags.vue'
 
 const { t, currentLocale } = useLocale()
+const { CATEGORY_LABELS } = useLabels()
 
 const tasks = ref<Task[]>([])
 const newTitle = ref('')
+const selectedCategory = ref<TaskCategory>(TASK_CATEGORY.WORK)
 const inputRef = ref<HTMLInputElement | null>(null)
 const editingId = ref<number | null>(null)
 const editText = ref('')
@@ -16,51 +27,66 @@ const removingId = ref<number | null>(null)
 const showForm = ref(false)
 const editingTask = ref<Task | null>(null)
 
-const today = new Date()
-today.setHours(0, 0, 0, 0)
-const todayStr = today.toISOString().slice(0, 10)
-const todayLabel = computed(() => today.toLocaleDateString(currentLocale.value, {
-  month: 'long',
-  day: 'numeric',
-  weekday: 'long',
-}))
-const todayDay = computed(() => today.toLocaleDateString(currentLocale.value, { day: 'numeric' }))
-const todayMonthWeekday = computed(() => today.toLocaleDateString(currentLocale.value, {
+const setEditRef = (el: Element | ComponentPublicInstance | null): void => {
+  editRef.value = el instanceof HTMLInputElement ? el : null
+}
+
+// Reactive date — updates on midnight crossover via visibilitychange
+const today = ref(startOfDay(new Date()))
+const todayStr = computed(() => today.value.toISOString().slice(0, 10))
+
+function startOfDay(d: Date): Date {
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function refreshDate(): void {
+  const now = startOfDay(new Date())
+  if (now.getTime() !== today.value.getTime()) {
+    today.value = now
+    loadTasks()
+  }
+}
+
+let visibilityHandler: (() => void) | null = null
+const todayDay = computed(() => today.value.toLocaleDateString(currentLocale.value, { day: 'numeric' }))
+const todayMonthWeekday = computed(() => today.value.toLocaleDateString(currentLocale.value, {
   month: 'long',
   weekday: 'long',
 }))
 
 const loadTasks = async (): Promise<void> => {
   const all = await db.tasks.toArray()
+  const todayMs = today.value.getTime()
   tasks.value = all
-    .filter(t => {
+    .filter(task => {
       // 当天创建的任务全部显示
-      const d = new Date(t.createdAt)
+      const d = new Date(task.createdAt)
       d.setHours(0, 0, 0, 0)
-      if (d.getTime() === today.getTime()) return true
+      if (d.getTime() === todayMs) return true
       // 往日未完成的任务顺延到今天
-      if (t.status === TASK_STATUS.PENDING || t.status === TASK_STATUS.IN_PROGRESS) return true
+      if (task.status === TASK_STATUS.PENDING || task.status === TASK_STATUS.IN_PROGRESS) return true
       // 今天完成的往日任务也显示（避免刷新后消失）
-      if (t.status === TASK_STATUS.COMPLETED && t.completedAt) {
-        const c = new Date(t.completedAt)
+      if (task.status === TASK_STATUS.COMPLETED && task.completedAt) {
+        const c = new Date(task.completedAt)
         c.setHours(0, 0, 0, 0)
-        return c.getTime() === today.getTime()
+        return c.getTime() === todayMs
       }
       // 今天取消的往日任务也显示
-      if (t.status === TASK_STATUS.CANCELLED && t.completedAt) {
-        const c = new Date(t.completedAt)
+      if (task.status === TASK_STATUS.CANCELLED && task.completedAt) {
+        const c = new Date(task.completedAt)
         c.setHours(0, 0, 0, 0)
-        return c.getTime() === today.getTime()
+        return c.getTime() === todayMs
       }
       return false
     })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 }
 
-const pending = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.PENDING))
-const inProgress = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.IN_PROGRESS))
-const done = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.COMPLETED))
-const cancelled = computed(() => tasks.value.filter(t => t.status === TASK_STATUS.CANCELLED))
+const pending = computed(() => tasks.value.filter(task => task.status === TASK_STATUS.PENDING))
+const inProgress = computed(() => tasks.value.filter(task => task.status === TASK_STATUS.IN_PROGRESS))
+const done = computed(() => tasks.value.filter(task => task.status === TASK_STATUS.COMPLETED))
+const cancelled = computed(() => tasks.value.filter(task => task.status === TASK_STATUS.CANCELLED))
 const progress = computed(() => {
   if (tasks.value.length === 0) return 0
   return Math.round((done.value.length / tasks.value.length) * 100)
@@ -75,8 +101,8 @@ const addTask = async (): Promise<void> => {
     description: '',
     status: TASK_STATUS.PENDING,
     priority: 'medium',
-    category: 'other',
-    dueDate: todayStr,
+    category: selectedCategory.value,
+    dueDate: todayStr.value,
     createdAt: new Date().toISOString(),
     completedAt: null,
   })
@@ -116,15 +142,17 @@ const remove = async (id: number | undefined): Promise<void> => {
 }
 
 const startEdit = (task: Task): void => {
-  editingId.value = task.id ?? null
+  if (task.id === undefined || editingId.value === task.id) return
+  editingId.value = task.id
   editText.value = task.title
   nextTick(() => editRef.value?.focus())
 }
 
 const saveEdit = async (task: Task): Promise<void> => {
+  if (task.id === undefined || editingId.value !== task.id) return
   const title = editText.value.trim()
   if (title && title !== task.title) {
-    await db.tasks.update(task.id!, { title })
+    await db.tasks.update(task.id, { title })
   }
   editingId.value = null
   await loadTasks()
@@ -150,7 +178,7 @@ const closeForm = (): void => {
   editingTask.value = null
 }
 
-const handleSave = async (taskData: Record<string, any>): Promise<void> => {
+const handleSave = async (taskData: TaskFormData): Promise<void> => {
   if (editingTask.value) {
     await db.tasks.update(editingTask.value.id!, taskData)
   }
@@ -165,7 +193,16 @@ const onKeydown = (e: KeyboardEvent): void => {
   }
 }
 
-onMounted(loadTasks)
+onMounted(() => {
+  loadTasks()
+  visibilityHandler = refreshDate
+  document.addEventListener('visibilitychange', visibilityHandler)
+})
+onUnmounted(() => {
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+  }
+})
 </script>
 
 <template>
@@ -199,6 +236,17 @@ onMounted(loadTasks)
     <div class="input-area">
       <label for="task-input" class="sr-only">{{ t('today.addTask') }}</label>
       <div class="input-wrapper">
+        <label for="task-category" class="sr-only">{{ t('form.categoryLabel') }}</label>
+        <select
+          id="task-category"
+          v-model="selectedCategory"
+          class="quick-category-select"
+          :aria-label="t('form.categoryLabel')"
+        >
+          <option v-for="(label, value) in CATEGORY_LABELS" :key="value" :value="value">
+            {{ label }}
+          </option>
+        </select>
         <span class="input-icon" aria-hidden="true">+</span>
         <input
           id="task-input"
@@ -230,16 +278,18 @@ onMounted(loadTasks)
           <div class="task-content" @click="startEdit(task)">
             <template v-if="editingId === task.id">
               <input
-                ref="editRef"
+                :ref="setEditRef"
                 v-model="editText"
                 class="edit-field"
-                @keydown.enter="saveEdit(task)"
+                @click.stop
+                @keydown.enter.prevent="saveEdit(task)"
                 @keydown.escape="cancelEdit"
                 @blur="saveEdit(task)"
               />
             </template>
             <template v-else>
               <span class="task-text">{{ task.title }}</span>
+              <TaskTags :category="task.category" :priority="task.priority" />
             </template>
           </div>
           <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
@@ -280,16 +330,18 @@ onMounted(loadTasks)
           <div class="task-content" @click="startEdit(task)">
             <template v-if="editingId === task.id">
               <input
-                ref="editRef"
+                :ref="setEditRef"
                 v-model="editText"
                 class="edit-field"
-                @keydown.enter="saveEdit(task)"
+                @click.stop
+                @keydown.enter.prevent="saveEdit(task)"
                 @keydown.escape="cancelEdit"
                 @blur="saveEdit(task)"
               />
             </template>
             <template v-else>
               <span class="task-text active-text">{{ task.title }}</span>
+              <TaskTags :category="task.category" :priority="task.priority" />
             </template>
           </div>
           <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
@@ -327,9 +379,12 @@ onMounted(loadTasks)
               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
             </svg>
           </button>
-          <span class="task-text strike">
-            <span class="strike-inner">{{ task.title }}</span>
-          </span>
+          <div class="task-content task-content-static">
+            <span class="task-text strike">
+              <span class="strike-inner">{{ task.title }}</span>
+            </span>
+            <TaskTags :category="task.category" :priority="task.priority" />
+          </div>
           <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
@@ -363,7 +418,10 @@ onMounted(loadTasks)
               <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
             </svg>
           </button>
-          <span class="task-text cancelled-text">{{ task.title }}</span>
+          <div class="task-content task-content-static">
+            <span class="task-text cancelled-text">{{ task.title }}</span>
+            <TaskTags :category="task.category" :priority="task.priority" />
+          </div>
           <button class="action-btn remove-btn" :aria-label="t('today.deleteTask', { title: task.title })" @click.stop="remove(task.id!)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="3 6 5 6 21 6" />
@@ -400,7 +458,7 @@ onMounted(loadTasks)
     <!-- Edit Modal -->
     <Teleport to="body">
       <transition name="fade">
-        <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
+        <div v-if="showForm" class="modal-overlay" @click.self="closeForm" role="dialog" aria-modal="true" :aria-label="editingTask ? t('form.editTask') : t('form.newTask')">
           <transition name="modal">
             <TaskForm
               v-if="showForm"
@@ -424,15 +482,15 @@ onMounted(loadTasks)
   --today-date-size: 48px;
   --today-date-meta-size: 15px;
   --today-progress-h: 8px;
-  --today-card-bg: transparent;
-  --today-card-hover-bg: var(--cream-dark);
+  --today-card-bg: var(--paper);
+  --today-card-hover-bg: var(--cream);
   --today-card-hover-y: 0;
   --today-card-shadow: none;
   --today-card-shadow-hover: none;
-  --today-card-border: none;
-  --today-checkbox-size: 24px;
+  --today-card-border: 1px solid var(--paper-line);
+  --today-checkbox-size: 26px;
   --today-divider-color: var(--ink-4);
-  --today-input-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.04);
+  --today-input-shadow: none;
   --today-input-focus-glow: 0 0 0 3px var(--accent-subtle);
   --today-gap-xs: 4px;
   --today-gap-sm: 8px;
@@ -441,6 +499,8 @@ onMounted(loadTasks)
   --today-gap-xl: 32px;
   --today-radius: #{$radius};
   --today-radius-lg: #{$radius-lg};
+  width: min(100%, 720px);
+  margin: 0 auto;
 }
 
 // ── Date Block ────────────────────────────────────────
@@ -464,7 +524,7 @@ onMounted(loadTasks)
   font-weight: 700;
   color: var(--ink);
   line-height: 1;
-  letter-spacing: -1px;
+  letter-spacing: 0;
 
   @include mobile {
     font-size: 36px;
@@ -494,9 +554,9 @@ onMounted(loadTasks)
 // Hand-drawn decorative separator (CSS only)
 .hand-drawn-divider {
   margin-top: var(--today-gap-sm);
-  height: 6px;
+  height: 1px;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 
   &::before {
     content: '';
@@ -504,44 +564,14 @@ onMounted(loadTasks)
     left: 0;
     top: 0;
     width: 100%;
-    height: 2px;
-    background: repeating-linear-gradient(
-      90deg,
-      var(--today-divider-color) 0px,
-      var(--today-divider-color) 8px,
-      transparent 8px,
-      transparent 12px
-    );
-    opacity: 0.4;
+    height: 1px;
+    background: var(--paper-line);
+    opacity: 1;
     border-radius: 1px;
-    // Slight wavy effect via clip-path
-    clip-path: polygon(
-      0% 40%, 3% 60%, 6% 35%, 10% 55%, 14% 30%, 18% 60%,
-      22% 35%, 26% 55%, 30% 40%, 34% 60%, 38% 30%, 42% 55%,
-      46% 40%, 50% 60%, 54% 35%, 58% 55%, 62% 30%, 66% 60%,
-      70% 40%, 74% 55%, 78% 35%, 82% 60%, 86% 40%, 90% 55%,
-      94% 35%, 98% 55%, 100% 40%,
-      100% 100%, 0% 100%
-    );
   }
 
-  // A second layer with slight offset for hand-drawn feel
   &::after {
-    content: '';
-    position: absolute;
-    left: 4px;
-    top: 3px;
-    width: calc(100% - 8px);
-    height: 1.5px;
-    background: repeating-linear-gradient(
-      90deg,
-      var(--today-divider-color) 0px,
-      var(--today-divider-color) 5px,
-      transparent 5px,
-      transparent 9px
-    );
-    opacity: 0.2;
-    border-radius: 1px;
+    display: none;
   }
 }
 
@@ -563,48 +593,18 @@ onMounted(loadTasks)
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--green-light));
+  background: var(--accent);
   border-radius: var(--today-progress-h);
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
 
-  // Shimmer overlay
   &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.25) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: progress-shimmer 2s ease-in-out infinite;
+    display: none;
   }
 
   &.progress-complete {
-    background: linear-gradient(90deg, var(--green), var(--green-light));
-    animation: progress-pulse 2s ease-in-out infinite;
-  }
-}
-
-@keyframes progress-shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-@keyframes progress-pulse {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 var(--green-subtle);
-  }
-  50% {
-    opacity: 0.85;
-    box-shadow: 0 0 8px 2px var(--green-subtle);
+    background: var(--green);
+    animation: none;
   }
 }
 
@@ -628,40 +628,95 @@ onMounted(loadTasks)
   display: flex;
   align-items: center;
   gap: var(--today-gap-sm);
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 10px;
-  transition: box-shadow 0.25s ease;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  padding: var(--space-2);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+  border-radius: var(--radius-lg);
+  overflow: visible;
 
   &:focus-within {
+    border-color: var(--accent-muted);
     box-shadow: var(--today-input-shadow), var(--today-input-focus-glow);
     background: var(--paper);
+  }
+
+  @include mobile {
+    flex-wrap: wrap;
+    align-items: stretch;
+    padding: 8px;
+  }
+}
+
+.quick-category-select {
+  flex: 0 0 auto;
+  min-width: 128px;
+  height: 44px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius);
+  color: var(--ink-2);
+  background-color: var(--paper);
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 2L6 6L10.5 2' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  font-family: $font-ui;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-muted);
+    background-color: var(--cream);
+  }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+
+  @include mobile {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    font-size: 16px;
   }
 }
 
 .input-icon {
-  font-size: 20px;
-  font-weight: 300;
-  color: var(--ink-3);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $font-ui;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-subtle);
   line-height: 1;
   user-select: none;
-  transition: color 0.2s ease;
   flex-shrink: 0;
-
-  .input-wrapper:focus-within & {
-    color: var(--accent);
-  }
 }
 
 .note-input {
   flex: 1;
+  min-width: 0;
   width: 100%;
   border: none;
   outline: none;
-  font-size: 15px;
+  font-size: 16px;
   font-family: $font-body;
   color: var(--ink);
   background: transparent;
@@ -693,10 +748,10 @@ onMounted(loadTasks)
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.04em;
   padding: 4px 12px;
   border-radius: $radius-full;
   font-family: $font-ui;
@@ -715,7 +770,7 @@ onMounted(loadTasks)
   height: 18px;
   border-radius: $radius-full;
   background: rgba(0, 0, 0, 0.08);
-  font-size: 10px;
+  font-size: 11px;
   padding: 0 5px;
 
   @include mobile {
@@ -751,7 +806,7 @@ onMounted(loadTasks)
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 // ── Task item (card style) ────────────────────────────
@@ -759,15 +814,18 @@ onMounted(loadTasks)
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 12px;
   border-radius: var(--today-radius);
   background: var(--today-card-bg);
+  border: var(--today-card-border);
   transition:
     background 0.15s ease,
+    border-color 0.15s ease,
     opacity 0.3s ease;
 
   &:hover {
     background: var(--today-card-hover-bg);
+    border-color: var(--accent-muted);
   }
 }
 
@@ -790,7 +848,10 @@ onMounted(loadTasks)
     animation: border-expand 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  &:hover { background: var(--blue-subtle); }
+  &:hover {
+    background: var(--blue-subtle);
+    border-color: var(--blue);
+  }
 }
 
 @keyframes border-expand {
@@ -822,6 +883,7 @@ onMounted(loadTasks)
 .ring {
   width: var(--today-checkbox-size);
   height: var(--today-checkbox-size);
+  min-width: var(--today-checkbox-size);
   border-radius: 50%;
   flex-shrink: 0;
   cursor: pointer;
@@ -915,14 +977,26 @@ onMounted(loadTasks)
   flex: 1;
   min-width: 0;
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--today-gap-sm);
+}
+
+.task-content-static {
+  cursor: default;
 }
 
 .task-text {
+  display: block;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 100%;
   font-size: 15px;
   color: var(--ink);
   line-height: 1.5;
-  @include text-ellipsis;
+  overflow-wrap: anywhere;
 
   &.active-text {
     font-weight: 600;
@@ -932,7 +1006,6 @@ onMounted(loadTasks)
   &.strike {
     color: var(--ink-3);
     position: relative;
-    display: inline-block;
   }
 }
 
@@ -981,18 +1054,18 @@ onMounted(loadTasks)
 
 // ── Action buttons (edit, cancel, delete) ─────────────
 .action-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--ink-3);
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.65;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   flex-shrink: 0;
   padding: 0;
 
@@ -1003,26 +1076,51 @@ onMounted(loadTasks)
 
 .task-item:hover .action-btn { opacity: 1; }
 
+@media (hover: hover) and (pointer: fine) {
+  .action-btn {
+    opacity: 0.28;
+  }
+}
+
 @include mobile {
-  .task-item .action-btn { opacity: 0.6; }
+  .task-item {
+    gap: var(--space-2);
+    padding: 10px;
+  }
+
+  .task-item .action-btn { opacity: 0.78; }
   .task-item:hover .action-btn { opacity: 1; }
+
+  .task-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding-top: 5px;
+  }
+
+  .task-text {
+    flex-basis: auto;
+  }
 }
 
 .edit-btn:hover {
   color: var(--accent);
   background: var(--accent-subtle);
+  border-color: var(--accent-muted);
   svg { transform: scale(1.1); }
 }
 
 .cancel-btn:hover {
-  color: var(--orange, #f59e0b);
-  background: rgba(245, 158, 11, 0.1);
+  color: var(--amber);
+  background: var(--amber-subtle);
+  border-color: var(--amber);
   svg { transform: scale(1.1); }
 }
 
 .remove-btn:hover {
   color: var(--red);
   background: var(--red-subtle);
+  border-color: var(--red);
   svg { transform: scale(1.1); }
 }
 
@@ -1088,7 +1186,7 @@ onMounted(loadTasks)
   display: flex;
   justify-content: center;
   margin-bottom: 24px;
-  animation: float 3.5s ease-in-out infinite;
+  animation: none;
 }
 
 .notebook-cover {

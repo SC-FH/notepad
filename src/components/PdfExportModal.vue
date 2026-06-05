@@ -8,6 +8,16 @@ import type { DayGroup } from '../views/History.vue'
 const { t, currentLocale } = useLocale()
 const { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS } = useLabels()
 
+/** Escape HTML special characters to prevent XSS */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 const props = defineProps<{
   visible: boolean
   day: DayGroup | null
@@ -72,9 +82,9 @@ const dayStats = computed(() => {
 })
 
 /* ═══════════════════════════════════════════════════════
-   Build PDF HTML
+   Build PDF HTML (computed — only rebuilds on dependency change)
    ═══════════════════════════════════════════════════════ */
-function buildPdfHtml(): string {
+const pdfHtml = computed((): string => {
   if (!props.day) return ''
   const s = sections.value
   const stats = dayStats.value
@@ -82,10 +92,10 @@ function buildPdfHtml(): string {
   let html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;color:#134e4a;padding:40px 48px;max-width:680px;">`
 
   if (s.title) {
-    const title = customTitle.value || t('pdf.taskReport', { date: props.day.date })
+    const title = escapeHtml(customTitle.value || t('pdf.taskReport', { date: props.day.date }))
     html += `<div style="text-align:center;margin-bottom:28px;">
       <h1 style="font-size:24px;font-weight:700;color:#0d9488;margin:0 0 6px 0;letter-spacing:0.5px;">${title}</h1>
-      <p style="font-size:13px;color:#6b7280;margin:0;">${props.day.date}</p>
+      <p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(props.day.date)}</p>
     </div>`
   }
 
@@ -109,7 +119,7 @@ function buildPdfHtml(): string {
       const statusColor = isDone ? '#16a34a' : task.status === TASK_STATUS.IN_PROGRESS ? '#0284c7' : task.status === TASK_STATUS.CANCELLED ? '#dc2626' : '#9ca3af'
       let tds = `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusColor};margin-right:8px;vertical-align:middle;"></span>
-        <span style="vertical-align:middle;">${task.title}</span>
+        <span style="vertical-align:middle;">${escapeHtml(task.title)}</span>
       </td>
       <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${statusLabel}</td>`
       if (s.priority) tds += `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;white-space:nowrap;">${PRIORITY_LABELS.value[task.priority] || task.priority || '—'}</td>`
@@ -131,7 +141,7 @@ function buildPdfHtml(): string {
 
   html += `</div>`
   return html
-}
+})
 
 /* ═══════════════════════════════════════════════════════
    Export
@@ -151,7 +161,7 @@ const handleExport = async (): Promise<void> => {
         margin: [10, 10, 10, 10],
         filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 6, width: 794, windowWidth: 794, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+        html2canvas: { scale: 2, width: 794, windowWidth: 794, useCORS: true, logging: false, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
       .from(el)
@@ -167,7 +177,7 @@ const handleExport = async (): Promise<void> => {
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="visible" class="modal-overlay" @click.self="emit('close')">
+      <div v-if="visible" class="modal-overlay" @click.self="emit('close')" role="dialog" aria-modal="true" :aria-label="t('pdf.title')">
         <div class="modal-panel" @click.stop>
           <!-- ─── header ─── -->
           <div class="modal-header">
@@ -183,7 +193,7 @@ const handleExport = async (): Promise<void> => {
             <div class="preview-pane">
               <div class="preview-label">{{ t('pdf.livePreview') }}</div>
               <div class="preview-box" ref="previewBoxRef">
-                <div v-html="buildPdfHtml()"></div>
+                <div v-html="pdfHtml"></div>
               </div>
             </div>
 
@@ -327,15 +337,22 @@ const handleExport = async (): Promise<void> => {
 .modal-close {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--ink-3);
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  background: var(--paper);
+  color: var(--ink-2);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
-  &:hover { background: var(--cream); }
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+  &:hover {
+    background: var(--cream);
+    border-color: var(--accent-muted);
+    color: var(--accent);
+  }
 }
 
 /* ─── content: left-right ─── */
@@ -383,15 +400,23 @@ const handleExport = async (): Promise<void> => {
 .opt-input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  font-size: 14px;
+  min-height: 44px;
+  font-size: 15px;
   color: var(--ink);
-  background: var(--cream);
+  background: var(--paper);
   border: 1px solid var(--paper-line);
   border-radius: var(--radius);
   outline: none;
   transition: border-color var(--duration-fast) var(--ease-out);
   box-sizing: border-box;
-  &:focus { border-color: var(--accent); }
+  &:hover {
+    background: var(--cream);
+    border-color: var(--accent-muted);
+  }
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
 }
 
 /* ─── toggle grid ─── */
@@ -405,11 +430,13 @@ const handleExport = async (): Promise<void> => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 44px;
   padding: 6px var(--space-3);
   border-radius: var(--radius);
-  background: var(--cream);
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
   transition: background var(--duration-fast) var(--ease-out);
-  &:hover { background: var(--cream-dark); }
+  &:hover { background: var(--cream); }
 }
 
 .toggle-text {
@@ -458,6 +485,7 @@ const handleExport = async (): Promise<void> => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-height: 36px;
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -548,17 +576,20 @@ const handleExport = async (): Promise<void> => {
   font-family: $font-ui;
   font-size: 14px;
   font-weight: 600;
+  min-height: 40px;
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius);
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
+  touch-action: manipulation;
 }
 
 .btn--ghost {
   background: transparent;
-  color: var(--ink-3);
-  &:hover { background: var(--cream); }
+  color: var(--ink-2);
+  border-color: var(--paper-line);
+  &:hover { background: var(--cream); border-color: var(--accent-muted); }
 }
 
 .btn--primary {

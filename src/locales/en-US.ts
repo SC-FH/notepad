@@ -35,6 +35,8 @@ export default {
     markInProgress: "Mark '{title}' as in progress",
     markCompleted: "Mark '{title}' as completed",
     markPending: "Mark '{title}' as pending",
+    markCancelled: "Mark '{title}' as cancelled",
+    cancelTask: 'Cancel',
     deleteTask: "Delete task '{title}'",
   },
   history: {

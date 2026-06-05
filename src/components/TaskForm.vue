@@ -8,6 +8,7 @@ import {
   type TaskStatus,
   type TaskPriority,
   type TaskCategory,
+  type TaskFormData,
 } from '../db'
 import { useLocale } from '../composables/useLocale'
 import { useLabels } from '../composables/useLabels'
@@ -20,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [data: Record<string, any>]
+  save: [data: TaskFormData]
   cancel: []
 }>()
 
@@ -28,7 +29,7 @@ const title = ref('')
 const description = ref('')
 const status = ref<TaskStatus>(TASK_STATUS.PENDING)
 const priority = ref<TaskPriority>(TASK_PRIORITY.MEDIUM)
-const category = ref<TaskCategory>(TASK_CATEGORY.OTHER)
+const category = ref<TaskCategory>(TASK_CATEGORY.WORK)
 const dueDate = ref('')
 
 watch(() => props.task, (task) => {
@@ -44,7 +45,7 @@ watch(() => props.task, (task) => {
     description.value = ''
     status.value = TASK_STATUS.PENDING
     priority.value = TASK_PRIORITY.MEDIUM
-    category.value = TASK_CATEGORY.OTHER
+    category.value = TASK_CATEGORY.WORK
     dueDate.value = ''
   }
 }, { immediate: true })
@@ -213,17 +214,30 @@ const onKeydown = (e: KeyboardEvent): void => {
 .form-textarea {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  font-size: 14px;
-  font-family: $font-body;
+  min-height: 44px;
+  font-size: 15px;
+  font-family: $font-ui;
   color: var(--ink);
-  background: var(--cream);
+  background: var(--paper);
   border: 1px solid var(--paper-line);
   border-radius: var(--radius);
   outline: none;
-  transition: border-color var(--duration-fast) var(--ease-out);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
   box-sizing: border-box;
 
-  &:focus { border-color: var(--accent); }
+  &:hover {
+    border-color: var(--accent-muted);
+    background-color: var(--cream);
+  }
+
+  &:focus {
+    border-color: var(--accent);
+    background-color: var(--paper);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
 
   @include mobile {
     font-size: 16px; // prevent iOS zoom on focus
@@ -239,10 +253,13 @@ const onKeydown = (e: KeyboardEvent): void => {
 .form-select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  font-family: $font-ui;
+  font-weight: 600;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 2L6 6L10.5 2' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+  padding-right: 40px;
 }
 
 .form-actions {
@@ -258,17 +275,20 @@ const onKeydown = (e: KeyboardEvent): void => {
   font-family: $font-ui;
   font-size: 14px;
   font-weight: 600;
+  min-height: 40px;
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius);
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
+  touch-action: manipulation;
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--ink-3);
-  &:hover { background: var(--cream); }
+  color: var(--ink-2);
+  border-color: var(--paper-line);
+  &:hover { background: var(--cream); border-color: var(--accent-muted); }
 }
 
 .btn-primary {

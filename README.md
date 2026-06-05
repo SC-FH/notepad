@@ -8,7 +8,6 @@ A personal notepad and task management app built with Vue 3 + Vite, with data st
 
 - **Today View** — View and manage today's tasks
 - **Task Management** — Create, edit, and complete tasks
-- **Dashboard** — Overview of task status and progress
 - **Statistics** — Visualize task completion with charts
 - **History** — Browse past task completion records
 - **PDF Export** — Export task data to PDF files
@@ -70,9 +69,14 @@ npm run type-check
 ```
 src/
 ├── components/      # Shared components
+│   ├── LanguageSwitcher.vue
+│   ├── PdfExportModal.vue
+│   ├── TaskForm.vue
+│   ├── TaskTags.vue
 │   ├── ThemePicker.vue
-│   └── PdfExportModal.vue
 ├── composables/     # Composable functions
+│   ├── useLabels.ts
+│   ├── useLocale.ts
 │   └── useTheme.ts
 ├── db/              # Database (Dexie)
 │   └── index.ts
@@ -83,15 +87,10 @@ src/
 │   ├── _variables.scss
 │   ├── _mixins.scss
 │   ├── _base.scss
-│   ├── _layout.scss
-│   ├── _components.scss
 │   └── _animations.scss
 ├── views/           # Page views
 │   ├── Today.vue
-│   ├── Tasks.vue
-│   ├── Dashboard.vue
 │   ├── Stats.vue
-│   ├── Statistics.vue
 │   └── History.vue
 ├── App.vue
 └── main.ts

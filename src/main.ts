@@ -9,6 +9,11 @@ import './styles/index.scss'
 // before first paint (avoids flash of default ocean).
 initTheme()
 
+// Set lang attribute from saved locale (avoids mismatch with hardcoded value)
+const LOCALE_KEY = 'notepad-locale'
+const savedLocale = localStorage.getItem(LOCALE_KEY) || 'zh-CN'
+document.documentElement.setAttribute('lang', savedLocale)
+
 const app = createApp(App)
 app.use(router)
 app.use(i18n)

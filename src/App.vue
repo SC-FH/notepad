@@ -3,16 +3,13 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import ThemePicker from './components/ThemePicker.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
-import { useTheme } from './composables/useTheme'
 import { useLocale } from './composables/useLocale'
 
 const route = useRoute()
 const tabsRef = ref<HTMLElement | null>(null)
-const tabRefs = ref<any[]>([])
+const tabRefs = ref<(HTMLElement | null)[]>([])
 const sliderStyle = ref<Record<string, string>>({})
 
-// Initialize theme system
-const { currentScheme } = useTheme()
 const { t, currentLocale } = useLocale()
 
 const tabs = computed(() => [
@@ -41,13 +38,13 @@ const tabs = computed(() => [
   },
 ])
 
-function setTabRef(el: any, index: number): void {
-  if (el) tabRefs.value[index] = el
+function setTabRef(el: unknown, index: number): void {
+  if (el) tabRefs.value[index] = el as HTMLElement
 }
 
-function getEl(ref: any): HTMLElement | null {
+function getEl(ref: unknown): HTMLElement | null {
   // router-link is a component — get its root DOM element
-  return ref?.$el || ref
+  return (ref as { $el?: HTMLElement })?.$el || (ref as HTMLElement | null)
 }
 
 function updateSlider(): void {
@@ -94,6 +91,7 @@ onUnmounted(() => window.removeEventListener('resize', updateSlider))
               :ref="(el) => setTabRef(el, i)"
               :to="tab.path"
               :class="['tab', { active: route.path === tab.path }]"
+              :aria-label="tab.label"
               :aria-current="route.path === tab.path ? 'page' : undefined"
             >
               <span class="tab-icon" v-html="tab.icon" aria-hidden="true" />
@@ -135,9 +133,9 @@ onUnmounted(() => window.removeEventListener('resize', updateSlider))
 @use './styles/mixins' as *;
 
 // ── Design tokens (local) ───────────────────────────────
-$topbar-h: 56px;
+$topbar-h: 64px;
 $topbar-blur: 12px;
-$content-max: 720px;
+$content-max: 980px;
 
 .app {
   min-height: 100vh;
@@ -157,6 +155,7 @@ $content-max: 720px;
 }
 
 .topbar-inner {
+  width: 100%;
   max-width: $content-max;
   margin: 0 auto;
   padding: 0 var(--space-6);
@@ -164,9 +163,12 @@ $content-max: 720px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-5);
+  box-sizing: border-box;
 
   @include mobile {
     padding: 0 var(--space-4);
+    gap: var(--space-3);
   }
 }
 
@@ -190,7 +192,7 @@ $content-max: 720px;
   font-size: 22px;
   font-weight: 700;
   color: var(--ink);
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 
   @include mobile {
     display: none;
@@ -201,13 +203,14 @@ $content-max: 720px;
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-width: 0;
-  overflow-x: auto;
-  @include scrollbar-hide;
+  flex: 1;
+  justify-content: flex-end;
+  overflow: visible;
 
   @include mobile {
-    gap: var(--space-2);
+    gap: var(--space-1);
   }
 }
 
@@ -216,18 +219,27 @@ $content-max: 720px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--paper-line);
   border-radius: var(--radius);
-  color: var(--ink-3);
+  color: var(--ink-2);
+  background: var(--paper);
   text-decoration: none;
-  transition: color var(--duration-normal) var(--ease-out),
-    background var(--duration-normal) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
 
   &:hover {
-    color: var(--ink);
+    color: var(--accent);
     background: var(--cream);
+    border-color: var(--accent-muted);
+  }
+
+  @media (max-width: 420px) {
+    display: none;
   }
 }
 
@@ -241,9 +253,14 @@ $content-max: 720px;
   position: relative;
   display: flex;
   gap: var(--space-1);
-  background: var(--cream);
+  background: var(--cream-dark);
   padding: 3px;
   border-radius: var(--radius);
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  @include scrollbar-hide;
 }
 
 .tabs-slider {
@@ -253,7 +270,6 @@ $content-max: 720px;
   height: calc(100% - 6px);
   background: var(--paper);
   border-radius: 6px;
-  box-shadow: 0 1px 3px var(--paper-shadow);
   transition:
     transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
     width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -266,16 +282,18 @@ $content-max: 720px;
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
+  gap: var(--space-2);
+  min-height: 34px;
+  padding: 0 var(--space-4);
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-3);
+  font-weight: 700;
+  color: var(--ink-2);
   text-decoration: none;
   transition: color var(--duration-normal) var(--ease-out);
   font-family: $font-ui;
   white-space: nowrap;
+  scroll-snap-align: center;
 
   &:hover {
     color: var(--ink-2);
@@ -286,14 +304,14 @@ $content-max: 720px;
   }
 
   @include mobile {
-    padding: 5px 8px;
-    font-size: 12px;
+    padding: 0 var(--space-3);
   }
 }
 
-// ── Tab icon (visible on mobile, hidden on desktop) ──────
 .tab-icon {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -303,10 +321,23 @@ $content-max: 720px;
     height: 100%;
   }
 
-  @include mobile {
-    display: flex;
-    align-items: center;
+}
+
+@media (max-width: 520px) {
+  .tab {
+    width: 36px;
+    padding: 0;
     justify-content: center;
+  }
+
+  .tab-label {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar-inner {
+    padding: 0 var(--space-3);
   }
 }
 
@@ -315,6 +346,7 @@ $content-max: 720px;
   flex: 1;
   max-width: $content-max;
   width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: var(--space-7) var(--space-6) var(--space-11);
 
@@ -325,7 +357,7 @@ $content-max: 720px;
 
 // ── Page transition: fade + micro-displacement ───────────
 .page-wrapper {
-  will-change: opacity, transform;
+  contain: layout style;
 }
 
 .page-fade-enter-active {

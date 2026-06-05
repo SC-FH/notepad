@@ -13,29 +13,6 @@
   opacity: 0;
 }
 
-// ── Vue Transition: Slide (horizontal) ────────────────
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform var(--duration-normal) var(--ease-out);
-}
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(-100%);
-}
-
-// ── Vue Transition: Slide Up ──────────────────────────
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition:
-    opacity var(--duration-normal) var(--ease-out),
-    transform var(--duration-normal) var(--ease-out);
-}
-.slide-up-enter-from,
-.slide-up-leave-to {
-  opacity: 0;
-  transform: translateY(12px);
-}
-
 // ── Vue Transition: Modal Scale ───────────────────────
 .modal-enter-active,
 .modal-leave-active {
@@ -49,131 +26,13 @@
   transform: scale(0.96);
 }
 
-// ── Vue Transition: Scale In ──────────────────────────
-.scale-in-enter-active,
-.scale-in-leave-active {
-  transition:
-    opacity var(--duration-normal) var(--ease-out),
-    transform var(--duration-normal) var(--ease-out);
-}
-.scale-in-enter-from,
-.scale-in-leave-to {
-  opacity: 0;
-  transform: scale(0.92);
-}
-
-// ═══════════════════════════════════════════════════════
-//  @keyframes Definitions
-// ═══════════════════════════════════════════════════════
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% center;
-  }
-  100% {
-    background-position: 200% center;
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  Animation Utility Classes
-// ═══════════════════════════════════════════════════════
-
-.anim-shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--paper-line) 25%,
-    var(--cream) 50%,
-    var(--paper-line) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.8s ease-in-out infinite;
-}
-
-.anim-pulse {
-  animation: pulse 2s var(--ease-in-out) infinite;
-}
-
-.anim-spin {
-  animation: spin 0.8s linear infinite;
-}
-
-.anim-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-// ═══════════════════════════════════════════════════════
-//  Stagger Delay Utility Classes
-//  Use: add .stagger-1 through .stagger-6 to children
-//       inside a parent with display:flex/grid/list
-// ═══════════════════════════════════════════════════════
-
-.stagger-1 { animation-delay: 50ms; }
-.stagger-2 { animation-delay: 100ms; }
-.stagger-3 { animation-delay: 150ms; }
-.stagger-4 { animation-delay: 200ms; }
-.stagger-5 { animation-delay: 250ms; }
-.stagger-6 { animation-delay: 300ms; }
-
-// Combine with slide-up for list item entrance
-.stagger-item {
-  opacity: 0;
-  animation: stagger-in 0.4s var(--ease-out) forwards;
-}
-
-@keyframes stagger-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  Skeleton Loading Block
-// ═══════════════════════════════════════════════════════
-
-.skeleton {
-  border-radius: var(--radius);
-  animation: pulse 2s var(--ease-in-out) infinite;
-
-  &--text {
-    height: 1em;
-    width: 80%;
-    border-radius: var(--radius-sm);
-  }
-
-  &--circle {
-    border-radius: var(--radius-full);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
