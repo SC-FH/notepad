@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import db, { TASK_STATUS, type Task } from '../db'
 import PdfExportModal from '../components/PdfExportModal.vue'
@@ -609,7 +609,7 @@ onMounted(loadTasks)
   margin-top: 9px;
 
   &.pending     { background: var(--ink-4); }
-  &.in_progress { background: var(--blue); }
+  &.in_progress { background: var(--accent); }
   &.completed   { background: var(--green); }
   &.cancelled   { background: var(--red); }
 }

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, type ComponentPublicInstance } from 'vue'
 import db, {
   TASK_STATUS,
@@ -124,6 +124,11 @@ const cycleStatus = async (task: Task): Promise<void> => {
   }
   await db.tasks.update(task.id!, { status: newStatus, completedAt })
   await loadTasks()
+}
+
+const formatTime = (isoStr: string): string => {
+  if (!isoStr) return ""
+  return new Date(isoStr).toLocaleTimeString(currentLocale.value, { hour: "2-digit", minute: "2-digit" })
 }
 
 const restoreTask = async (task: Task): Promise<void> => {
@@ -384,6 +389,7 @@ onUnmounted(() => {
               <span class="strike-inner">{{ task.title }}</span>
             </span>
             <TaskTags :category="task.category" :priority="task.priority" />
+            <span v-if="task.completedAt" class="task-time">{{ formatTime(task.completedAt!) }}</span>
           </div>
           <button class="action-btn edit-btn" :aria-label="t('form.editTask')" @click.stop="openEditForm(task)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -786,9 +792,9 @@ onUnmounted(() => {
 }
 
 .badge-active {
-  color: var(--blue);
-  background: var(--blue-subtle);
-  .badge-count { background: var(--blue-subtle); }
+  color: var(--accent);
+  background: var(--accent-subtle);
+  .badge-count { background: var(--accent-subtle); }
 }
 
 .badge-done {
@@ -830,8 +836,8 @@ onUnmounted(() => {
 }
 
 .active-item {
-  background: var(--blue-subtle);
-  border-left: 3px solid var(--blue);
+  background: var(--accent-subtle);
+  border-left: 3px solid var(--accent);
   position: relative;
   overflow: hidden;
 
@@ -843,14 +849,14 @@ onUnmounted(() => {
     top: 0;
     width: 3px;
     height: 100%;
-    background: var(--blue);
+    background: var(--accent);
     transform-origin: top;
     animation: border-expand 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
   &:hover {
-    background: var(--blue-subtle);
-    border-color: var(--blue);
+    background: var(--accent-subtle);
+    border-color: var(--accent);
   }
 }
 
@@ -905,16 +911,16 @@ onUnmounted(() => {
 }
 
 .pending-ring:hover .ring-inner {
-  border-color: var(--blue);
-  background: var(--blue-subtle);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
   transform: scale(1.05);
 }
 
 .active-ring {
-  color: var(--blue);
+  color: var(--accent);
   .ring-inner {
-    border-color: var(--blue);
-    background: var(--blue);
+    border-color: var(--accent);
+    background: var(--accent);
     animation: ring-fill 0.3s ease forwards;
   }
 }
@@ -988,6 +994,13 @@ onUnmounted(() => {
   cursor: default;
 }
 
+.task-time {
+  font-family: $font-ui;
+  font-size: 11px;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+
 .task-text {
   display: block;
   flex: 1 1 260px;
@@ -1000,7 +1013,7 @@ onUnmounted(() => {
 
   &.active-text {
     font-weight: 600;
-    color: var(--blue);
+    color: var(--accent);
   }
 
   &.strike {
