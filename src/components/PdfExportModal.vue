@@ -31,19 +31,20 @@ const emit = defineEmits<{
    Section toggles
    ═══════════════════════════════════════════════════════ */
 const customTitle = ref('')
+const customFileName = ref('')
 const sections = ref<Record<string, boolean>>({
   title: true,
-  summary: true,
+  summary: false,
   taskList: true,
   priority: false,
   category: false,
-  footer: true,
+  footer: false,
 })
 
 const statusFilter = ref<Record<string, boolean>>({
   completed: true,
-  in_progress: true,
-  pending: true,
+  in_progress: false,
+  pending: false,
   cancelled: false,
 })
 
@@ -56,11 +57,27 @@ const statusFilterLabels = computed(() => ({
 
 watch(() => props.visible, (v) => {
   if (v && props.day) {
-    customTitle.value = t('pdf.taskReport', { date: props.day.date })
-    sections.value = { title: true, summary: true, taskList: true, priority: false, category: false, footer: true }
-    statusFilter.value = { completed: true, in_progress: true, pending: true, cancelled: false }
+    const defaultName = t('pdf.taskReport', { date: props.day.date })
+    customTitle.value = defaultName
+    customFileName.value = defaultName
+    sections.value = { title: true, summary: false, taskList: true, priority: false, category: false, footer: false }
+    statusFilter.value = { completed: true, in_progress: false, pending: false, cancelled: false }
   }
 })
+
+function sanitizeFileName(name: string): string {
+  return name
+    .trim()
+    .replace(/[\\/:*?"<>|\x00-\x1F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildPdfFileName(name: string, fallback: string): string {
+  const safeName = sanitizeFileName(name).replace(/(?:\.pdf)+$/i, '').trim()
+  const fallbackName = sanitizeFileName(fallback).replace(/(?:\.pdf)+$/i, '').trim()
+  return `${safeName || fallbackName || 'tasks'}.pdf`
+}
 
 /* ═══════════════════════════════════════════════════════
    Filtered tasks & stats
@@ -155,7 +172,7 @@ const handleExport = async (): Promise<void> => {
   try {
     const html2pdf = (await import('html2pdf.js')).default
     const el = previewBoxRef.value
-    const filename = `${customTitle.value || t('pdf.taskReport', { date: props.day.date })}.pdf`
+    const filename = buildPdfFileName(customFileName.value, t('pdf.taskReport', { date: props.day.date }))
     await html2pdf()
       .set({
         margin: [10, 10, 10, 10],
@@ -199,6 +216,14 @@ const handleExport = async (): Promise<void> => {
 
             <!-- RIGHT: options -->
             <div class="opt-pane">
+              <div class="opt-group">
+                <label class="opt-label">{{ t('pdf.customFileName') }}</label>
+                <div class="file-name-control">
+                  <input v-model="customFileName" type="text" class="opt-input file-name-input" :placeholder="t('pdf.fileNamePlaceholder')" />
+                  <span class="file-ext">.pdf</span>
+                </div>
+              </div>
+
               <!-- title -->
               <div class="opt-group">
                 <label class="opt-label">{{ t('pdf.customTitle') }}</label>
@@ -417,6 +442,24 @@ const handleExport = async (): Promise<void> => {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-subtle);
   }
+}
+
+.file-name-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.file-name-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.file-ext {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-3);
 }
 
 /* ─── toggle grid ─── */

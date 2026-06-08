@@ -88,6 +88,8 @@ export default {
     livePreview: 'Live Preview',
     customTitle: 'Custom Title',
     titlePlaceholder: 'Enter PDF title',
+    customFileName: 'File Name',
+    fileNamePlaceholder: 'Enter file name',
     moduleSelection: 'Modules',
     titleSection: 'Title Section',
     summarySection: 'Completion Summary',

@@ -88,6 +88,8 @@ export default {
     livePreview: '实时预览',
     customTitle: '自定义标题',
     titlePlaceholder: '输入 PDF 标题',
+    customFileName: '文件名',
+    fileNamePlaceholder: '输入文件名',
     moduleSelection: '模块选择',
     titleSection: '标题区域',
     summarySection: '完成率统计',
