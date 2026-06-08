@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, type ComponentPublicInstance } from 'vue'
 import db, {
   TASK_STATUS,
@@ -1018,34 +1018,24 @@ onUnmounted(() => {
 
   &.strike {
     color: var(--ink-3);
-    position: relative;
   }
 }
 
-// Animated strikethrough: left-to-right wipe
+// Animated strikethrough uses text-decoration so it works correctly on multi-line text
 .strike .strike-inner {
-  position: relative;
   display: inline;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 100%;
-    height: 1.5px;
-    background: var(--ink-3);
-    transform-origin: left center;
-    animation: strike-wipe 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  }
+  text-decoration: line-through;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1.5px;
+  animation: strike-reveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes strike-wipe {
+@keyframes strike-reveal {
   from {
-    transform: scaleX(0);
+    text-decoration-color: transparent;
   }
   to {
-    transform: scaleX(1);
+    text-decoration-color: var(--ink-3);
   }
 }
 
