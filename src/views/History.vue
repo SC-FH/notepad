@@ -42,6 +42,20 @@ function diffDays(a: Date, b: Date): number {
   return Math.floor((a.getTime() - b.getTime()) / msDay)
 }
 
+function localDateKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function historyDateKey(task: Task): string {
+  if (task.status === TASK_STATUS.COMPLETED && task.completedAt) {
+    return localDateKey(new Date(task.completedAt))
+  }
+  return localDateKey(new Date(task.createdAt))
+}
+
 function groupLabel(isoKey: string): string | null {
   const today = startOfDay(new Date())
   const d = new Date(isoKey + 'T00:00:00')
@@ -63,8 +77,8 @@ const days = computed(() => {
   yesterdayDate.setDate(yesterdayDate.getDate() - 1)
 
   allTasks.value.forEach(task => {
-    const d = startOfDay(new Date(task.createdAt))
-    const key = d.toISOString().slice(0, 10)
+    const key = historyDateKey(task)
+    const d = startOfDay(new Date(key + 'T00:00:00'))
     if (!map[key]) {
       map[key] = {
         date: key,
