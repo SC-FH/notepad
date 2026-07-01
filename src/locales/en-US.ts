@@ -86,6 +86,7 @@ export default {
     title: 'Export PDF',
     close: 'Close',
     livePreview: 'Live Preview',
+    customDate: 'Report Date',
     customTitle: 'Custom Title',
     titlePlaceholder: 'Enter PDF title',
     customFileName: 'File Name',

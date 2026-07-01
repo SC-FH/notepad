@@ -86,6 +86,7 @@ export default {
     title: '导出 PDF',
     close: '关闭',
     livePreview: '实时预览',
+    customDate: '报告日期',
     customTitle: '自定义标题',
     titlePlaceholder: '输入 PDF 标题',
     customFileName: '文件名',

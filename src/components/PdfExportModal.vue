@@ -32,6 +32,7 @@ const emit = defineEmits<{
    ═══════════════════════════════════════════════════════ */
 const customTitle = ref('')
 const customFileName = ref('')
+const customDate = ref('')
 const sections = ref<Record<string, boolean>>({
   title: true,
   summary: false,
@@ -60,6 +61,7 @@ watch(() => props.visible, (v) => {
     const defaultName = t('pdf.taskReport', { date: props.day.date })
     customTitle.value = defaultName
     customFileName.value = defaultName
+    customDate.value = props.day.date
     sections.value = { title: true, summary: false, taskList: true, priority: false, category: false, footer: false }
     statusFilter.value = { completed: true, in_progress: false, pending: false, cancelled: false }
   }
@@ -112,7 +114,7 @@ const pdfHtml = computed((): string => {
     const title = escapeHtml(customTitle.value || t('pdf.taskReport', { date: props.day.date }))
     html += `<div style="text-align:center;margin-bottom:28px;">
       <h1 style="font-size:24px;font-weight:700;color:#0d9488;margin:0 0 6px 0;letter-spacing:0.5px;">${title}</h1>
-      <p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(props.day.date)}</p>
+      <p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(customDate.value || props.day.date)}</p>
     </div>`
   }
 
@@ -222,6 +224,12 @@ const handleExport = async (): Promise<void> => {
                   <input v-model="customFileName" type="text" class="opt-input file-name-input" :placeholder="t('pdf.fileNamePlaceholder')" />
                   <span class="file-ext">.pdf</span>
                 </div>
+              </div>
+
+              <!-- custom date -->
+              <div class="opt-group">
+                <label class="opt-label">{{ t('pdf.customDate') }}</label>
+                <input v-model="customDate" type="date" class="opt-input" />
               </div>
 
               <!-- title -->
